@@ -1,0 +1,77 @@
+import cv2
+
+# 1. Liga a câmera do computador
+webcam = cv2.VideoCapture(0)
+
+# Variáveis para contar o movimento em cada setor
+movimento_esquerda = 0
+movimento_centro = 0
+movimento_direita = 0
+
+# Detetor de movimento simples
+fgbg = cv2.createBackgroundSubtractorMOG2(history=20, varThreshold=25, detectShadows=False)
+
+print("Aperte 'q' na tela do vídeo para fechar o programa.")
+
+while True:
+    verificacao, frame = webcam.read()
+    if not verificacao:
+        break
+
+    # Inverte o vídeo para funcionar como um espelho (mais fácil de mexer na feira)
+    frame = cv2.flip(frame, 1)
+    altura, largura, _ = frame.shape
+
+    # 2. Divide a tela em 3 setores verticais
+    limite1 = largura // 3
+    limite2 = (largura // 3) * 2
+
+    # Aplica o filtro para enxergar apenas o que está se movendo
+    mascara = fgbg.apply(frame)
+
+    # 3. Detecta onde as pessoas estão se mexendo
+    # Setor Esquerdo
+    mask_esquerda = mascara[:, 0:limite1]
+    if cv2.countNonZero(mask_esquerda) > 5000: # Se houver movimento suficiente
+        movimento_esquerda += 1
+
+    # Setor Central
+    mask_centro = mascara[:, limite1:limite2]
+    if cv2.countNonZero(mask_centro) > 5000:
+        movimento_centro += 1
+
+    # Setor Direito
+    mask_direita = mascara[:, limite2:largura]
+    if cv2.countNonZero(mask_direita) > 5000:
+        movimento_direita += 1
+
+    # --- DESENHANDO NA TELA PARA A MOSTRA CULTURAL ---
+    
+    # Desenha as linhas divisórias dos setores
+    cv2.line(frame, (limite1, 0), (limite1, altura), (255, 0, 0), 2)
+    cv2.line(frame, (limite2, 0), (limite2, altura), (255, 0, 0), 2)
+
+    # Escreve os nomes dos setores e o "placar" de movimento
+    cv2.putText(frame, f"Esq: {movimento_esquerda}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(frame, f"Centro: {movimento_centro}", (limite1 + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(frame, f"Dir: {movimento_direita}", (limite2 + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    # 4. Tomada de Decisão: Destaca o setor mais movimentado (Recomendação da IA)
+    maior = max(movimento_esquerda, movimento_centro, movimento_direita)
+    if maior > 0:
+        if maior == movimento_esquerda:
+            cv2.putText(frame, "RECOMENDADO PARA PISO PIEZOELETRO", (10, altura - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        elif maior == movimento_centro:
+            cv2.putText(frame, "RECOMENDADO PARA PISO PIEZOELETRO", (limite1 + 10, altura - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        else:
+            cv2.putText(frame, "RECOMENDADO PARA PISO PIEZOELETRO", (limite2 + 10, altura - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+    # Mostra a imagem na tela
+    cv2.imshow("IA - Analise de Fluxo (FECART)", frame)
+
+    # Fecha o programa se apertar a tecla 'q'
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+webcam.release()
+cv2.destroyAllWindows()
