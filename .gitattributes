@@ -1,2 +1,18 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Otimização de Pisos Piezoelétricos com Inteligência Artificial 🇧🇷 🇯🇵
+
+Projeto desenvolvido para a Mostra Cultural (FECART), inspirado na eficiência energética do Japão e aplicado à realidade brasileira.
+
+## 👥 Integrantes
+* Carlos Eduardo de Oliveira Lima
+* Kenzo Arita Fugimoto
+* Lorenzo Beltrami Scorza
+
+## 👨‍🏫 Orientadores
+* Luís Pires
+* Rafael Diogo Rosseti
+
+## 📝 Sobre o Projeto
+Nosso projeto utiliza **Inteligência Artificial (Visão Computacional)** para analisar o fluxo de pessoas em ambientes urbanos (como escolas, metrôs e terminais) através de câmeras. O sistema divide o espaço em setores e gera um **mapa de calor**. O objetivo é descobrir as áreas mais movimentadas para instalar pisos piezoelétricos de forma eficiente, evitando desperdício de dinheiro.
+
+---
+*Gerado em junho de 2026 para fins acadêmicos e pedagógicos.*
