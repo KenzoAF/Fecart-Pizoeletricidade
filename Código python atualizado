@@ -1,0 +1,93 @@
+import cv2
+from ultralytics import YOLO
+
+# 1. Carrega o modelo de IA leve para detectar pessoas (YOLOv8 nano)
+model = YOLO("yolov8n.pt")
+
+# 2. Abre a webcam (0 é a câmera padrão do notebook)
+cap = cv2.VideoCapture(0)
+
+# Dicionário para contar a quantidade de vezes que pessoas aparecem em cada setor
+contagem_setores = {"Setor A": 0, "Setor B": 0, "Setor C": 0}
+
+print("IA Iniciada... Pressione 'q' para fechar.")
+
+while cap.isOpened():
+    sucesso, frame = cap.read()
+    if not sucesso:
+        break
+
+    # Redimensiona a tela para um tamanho padrão de visualização
+    frame = cv2.resize(frame, (640, 480))
+    largura = 640
+    altura = 480
+
+    # Define as coordenadas das linhas dos setores (dividindo a largura em 3 partes iguais)
+    limite_A = largura // 3
+    limite_B = (largura // 3) * 2
+
+    # Desenha as linhas verticais na tela para o público ver a divisão dos setores 
+    cv2.line(frame, (limite_A, 0), (limite_A, altura), (255, 255, 255), 2)
+    cv2.line(frame, (limite_B, 0), (limite_B, altura), (255, 255, 255), 2)
+
+    # Identifica os setores textualmente na tela
+    cv2.putText(frame, "Setor A", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(frame, "Setor B", (limite_A + 20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(frame, "Setor C", (limite_B + 20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    # 3. Executa a IA no frame atual para detectar apenas PESSOAS (classes=0 no YOLO)
+    resultados = model(frame, classes=0, verbose=False)
+
+    # Processa os resultados encontrados pela IA [cite: 79]
+    for r in resultados:
+        caixas = r.boxes
+        for caixa in caixas:
+            # Pega as coordenadas da caixa ao redor da pessoa
+            x1, y1, x2, y2 = caixa.xyxy[0]
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            
+            # Calcula o ponto central (pé/base) da pessoa detectada
+            centro_x = int((x1 + x2) / 2)
+            centro_y = int((y1 + y2) / 2)
+
+            # Desenha uma caixa verde ao redor da pessoa na tela 
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.circle(frame, (centro_x, centro_y), 5, (0, 0, 255), -1)
+
+            # 4. Verifica em qual setor o centro da pessoa está e computa o fluxo [cite: 88]
+            if centro_x < limite_A:
+                contagem_setores["Setor A"] += 1
+            elif centro_x >= limite_A and centro_x < limite_B:
+                contagem_setores["Setor B"] += 1
+            else:
+                contagem_setores["Setor C"] += 1
+
+    # 5. Lógica de Tomada de Decisão (Encontra o setor mais movimentado) [cite: 93, 95]
+    melhor_setor = max(contagem_setores, key=contagem_setores.get)
+    
+    # Exibe no rodapé da imagem o veredito em tempo real para a banca avaliadora 
+    texto_decisao = f"Recomendacao IA: Instalar Piso no {melhor_setor}"
+    cv2.putText(frame, texto_decisao, (20, altura - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+
+    # Mostra a janela com a IA rodando ao vivo 
+    cv2.imshow("IA - Analise de Fluxo Piezoeletrico (Fecart)", frame)
+
+    # Fecha o programa se a tecla 'q' for pressionada
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+
+# Exibe o relatório final no terminal após fechar a IA [cite: 130]
+print("\n--- RELATÓRIO FINAL DE VIABILIDADE URBANA ---")
+for setor, pontos in contagem_setores.items():
+    print(f"{setor}: {pontos} registros de movimento acumulados.")
+print(f"Veredito Técnico Baseado em Dados: O local ideal para a instalação é o {melhor_setor}. [cite: 95, 139]")
+
+
+
+
+
+No terminal:    
+pip install opencv-python ultralytics
