@@ -125,6 +125,6 @@ void loop() {
 
 Kenzo - @KenzoAF
 
-Carlos Eduardo - 
+Carlos Eduardo - @kadufecap-blip
 
-Lorenzo -
+Lorenzo - @LoScorza2
