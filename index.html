@@ -278,10 +278,10 @@
 
     <h1>Piso Gerador de Energia</h1>
     <p class="subtitle">
-      Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
+      Conversão mecânica-elétrica via placas piezoelétricas acionadas pelo tráfego de pessoas.
     </p>
 
-    <div class="section-title">Mapa de Calor por Passadas</div>
+    <div class="section-title">Mapa de Calor por Placas</div>
     <div class="legend-container">
       <div class="legend-item">
         <div class="legend-color-box">
@@ -368,7 +368,9 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 7;
-    const HEATMAP_RES = 512;
+    const GRID_COUNT = 24;              // Grade de 24x24 placas quadradas perfeitas
+    const TOTAL_TILES = GRID_COUNT * GRID_COUNT;
+    const CANVAS_RES = 512;
     const JOULES_PER_STEP = 4.8;
     
     let isPaused = false;
@@ -432,41 +434,96 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR (FAIXA CONTÍNUA LINTA)
+    // 4. MOTOR DE PLACAS MODULARES QUADRADAS
     // ==========================================
-    const passGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
-    const lastAgentGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
-    lastAgentGrid.fill(255);
-    const lastTimeGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+    const tilePasses = new Uint8Array(TOTAL_TILES);
+    const tileLastAgent = new Uint8Array(TOTAL_TILES);
+    tileLastAgent.fill(255);
+    const tileLastTime = new Float32Array(TOTAL_TILES);
 
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = HEATMAP_RES;
-    outputCanvas.height = HEATMAP_RES;
-    const outputCtx = outputCanvas.getContext('2d');
+    const floorCanvas = document.createElement('canvas');
+    floorCanvas.width = CANVAS_RES;
+    floorCanvas.height = CANVAS_RES;
+    const floorCtx = floorCanvas.getContext('2d');
 
-    function initFloorCanvas() {
-      outputCtx.fillStyle = '#0f141c';
-      outputCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
+    const floorTexture = new THREE.CanvasTexture(floorCanvas);
+    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-      const numSquares = 16;
-      const squareSize = HEATMAP_RES / numSquares;
+    // Paleta de cores para cada placa modular
+    function getTileColor(count, r, c) {
+      if (count === 0) {
+        // Placa inativa com suave alternância de tom
+        return (r + c) % 2 === 0 ? '#121824' : '#0c1017';
+      }
+      if (count === 1) return '#22c55e'; // 1ª Pessoa: Verde
+      if (count === 2) return '#eab308'; // 2ª Pessoa: Amarelo
+      if (count === 3) return '#ef4444'; // 3ª Pessoa: Vermelho
+      return '#a855f7';                  // 4ª+ Pessoas: Roxo
+    }
 
-      for (let r = 0; r < numSquares; r++) {
-        for (let c = 0; c < numSquares; c++) {
-          const isEven = (r + c) % 2 === 0;
-          outputCtx.fillStyle = isEven ? '#121824' : '#0c1017';
-          outputCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
-          
-          outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-          outputCtx.lineWidth = 1;
-          outputCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+    function renderTilesToCanvas() {
+      floorCtx.fillStyle = '#08090d';
+      floorCtx.fillRect(0, 0, CANVAS_RES, CANVAS_RES);
+
+      const tileSize = CANVAS_RES / GRID_COUNT;
+      const gap = 1.2; // Espaço de junta entre placas piezoelétricas
+      let activeCount = 0;
+
+      for (let r = 0; r < GRID_COUNT; r++) {
+        for (let c = 0; c < GRID_COUNT; c++) {
+          const idx = r * GRID_COUNT + c;
+          const count = tilePasses[idx];
+
+          if (count > 0) activeCount++;
+
+          floorCtx.fillStyle = getTileColor(count, r, c);
+          floorCtx.fillRect(
+            c * tileSize + gap,
+            r * tileSize + gap,
+            tileSize - gap * 2,
+            tileSize - gap * 2
+          );
+
+          // Borda de acabamento do módulo
+          floorCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+          floorCtx.lineWidth = 1;
+          floorCtx.strokeRect(
+            c * tileSize + gap,
+            r * tileSize + gap,
+            tileSize - gap * 2,
+            tileSize - gap * 2
+          );
         }
       }
-    }
-    initFloorCanvas();
 
-    const floorTexture = new THREE.CanvasTexture(outputCanvas);
-    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      floorTexture.needsUpdate = true;
+
+      const coveragePercent = ((activeCount / TOTAL_TILES) * 100).toFixed(1);
+      document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
+    }
+    renderTilesToCanvas();
+
+    // Ativa a placa onde a pessoa está pisando
+    function stepOnTile(agentId, wx, wz) {
+      const col = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * GRID_COUNT);
+      const row = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * GRID_COUNT);
+
+      if (col < 0 || col >= GRID_COUNT || row < 0 || row >= GRID_COUNT) return;
+
+      const idx = row * GRID_COUNT + col;
+      const now = performance.now();
+      const prevAgent = tileLastAgent[idx];
+      const prevTime = tileLastTime[idx];
+
+      // Só sobe de nível se for OUTRA pessoa ou a mesma pessoa após 2.5s
+      if (prevAgent !== agentId || (now - prevTime > 2500)) {
+        if (tilePasses[idx] < 4) {
+          tilePasses[idx]++;
+        }
+        tileLastAgent[idx] = agentId;
+      }
+      tileLastTime[idx] = now;
+    }
 
     // ==========================================
     // 5. GEOMETRIA DO PISO
@@ -474,7 +531,7 @@
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorTexture,
-      roughness: 0.5,
+      roughness: 0.45,
       metalness: 0.25,
     });
 
@@ -635,127 +692,13 @@
         speed: speed,
         walkCycle: Math.random() * Math.PI * 2,
         turnTimer: Math.random() * 60,
-        prevX: x,
-        prevZ: z,
         lastStepX: x,
         lastStepZ: z
       });
     }
 
     // ==========================================
-    // 7. CÁLCULO E PINTURA DO RASTRO EM FAIXA CONTÍNUA
-    // 0 = Neutro
-    // 1 = 100% Verde Sólido (#22c55e)
-    // 2 = 100% Amarelo Sólido (#eab308)
-    // 3 = 100% Vermelho Sólido (#ef4444)
-    // 4+ = 100% Roxo Sólido (#a855f7)
-    // ==========================================
-    const ribbonRadius = 8; // Largura uniforme e limpa da faixa
-
-    function getHeatColor(count, pixelX, pixelY) {
-      if (count === 0) {
-        const numSquares = 16;
-        const squareSize = HEATMAP_RES / numSquares;
-        const col = Math.floor(pixelX / squareSize);
-        const row = Math.floor(pixelY / squareSize);
-        const isEven = (row + col) % 2 === 0;
-        return isEven ? [18, 24, 36, 255] : [12, 16, 23, 255];
-      }
-
-      if (count === 1) return [34, 197, 94, 255];   // 1ª Pessoa: Verde Sólido
-      if (count === 2) return [234, 179, 8, 255];   // 2ª Pessoa: Amarelo Sólido
-      if (count === 3) return [239, 68, 68, 255];   // 3ª Pessoa: Vermelho Sólido
-      return [168, 85, 247, 255];                   // 4ª+ Pessoas: Roxo Sólido
-    }
-
-    // Pinta um segmento contínuo e liso entre a posição anterior e atual
-    function paintContinuousSegment(agentId, x0, z0, x1, z1) {
-      const p0x = ((x0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
-      const p0y = ((z0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
-      const p1x = ((x1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
-      const p1y = ((z1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
-
-      const dx = p1x - p0x;
-      const dy = p1y - p0y;
-      const dist = Math.hypot(dx, dy);
-      const steps = Math.max(1, Math.ceil(dist / 1.5)); // Interpolação a cada 1.5px (sem bolinhas)
-      const now = performance.now();
-      const r2 = ribbonRadius * ribbonRadius;
-
-      for (let s = 0; s <= steps; s++) {
-        const t = s / steps;
-        const cx = Math.floor(p0x + dx * t);
-        const cy = Math.floor(p0y + dy * t);
-
-        const minX = Math.max(0, cx - ribbonRadius);
-        const maxX = Math.min(HEATMAP_RES - 1, cx + ribbonRadius);
-        const minY = Math.max(0, cy - ribbonRadius);
-        const maxY = Math.min(HEATMAP_RES - 1, cy + ribbonRadius);
-
-        for (let y = minY; y <= maxY; y++) {
-          for (let x = minX; x <= maxX; x++) {
-            const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-            if (d2 <= r2) {
-              const idx = y * HEATMAP_RES + x;
-              const prevAgent = lastAgentGrid[idx];
-              const prevTime = lastTimeGrid[idx];
-
-              // Incrementa de cor apenas se for OUTRA pessoa ou se a mesma pessoa voltou após 2.5 segundos
-              if (prevAgent !== agentId || (now - prevTime > 2500)) {
-                if (passGrid[idx] < 4) {
-                  passGrid[idx]++;
-                }
-                lastAgentGrid[idx] = agentId;
-              }
-              lastTimeGrid[idx] = now;
-            }
-          }
-        }
-      }
-    }
-
-    let frameCounter = 0;
-    function updateHeatmapTexture() {
-      const imgData = outputCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
-      const data = imgData.data;
-      let activePixels = 0;
-
-      for (let y = 0; y < HEATMAP_RES; y++) {
-        for (let x = 0; x < HEATMAP_RES; x++) {
-          const i = y * HEATMAP_RES + x;
-          const count = passGrid[i];
-          const pIdx = i * 4;
-
-          if (count > 0) activePixels++;
-
-          const col = getHeatColor(count, x, y);
-          data[pIdx]     = col[0];
-          data[pIdx + 1] = col[1];
-          data[pIdx + 2] = col[2];
-          data[pIdx + 3] = 255;
-        }
-      }
-
-      outputCtx.putImageData(imgData, 0, 0);
-
-      // Grade suave das placas
-      const numSquares = 16;
-      const squareSize = HEATMAP_RES / numSquares;
-      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      outputCtx.lineWidth = 1;
-      for (let i = 0; i <= HEATMAP_RES; i += squareSize) {
-        outputCtx.beginPath(); outputCtx.moveTo(i, 0); outputCtx.lineTo(i, HEATMAP_RES); outputCtx.stroke();
-        outputCtx.beginPath(); outputCtx.moveTo(0, i); outputCtx.lineTo(HEATMAP_RES, i); outputCtx.stroke();
-      }
-
-      floorTexture.needsUpdate = true;
-
-      const coveragePercent = ((activePixels / passGrid.length) * 100).toFixed(1);
-      document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
-    }
-
-    // ==========================================
-    // 8. FÍSICA E ANIMAÇÃO DOS HUMANOS
+    // 7. FÍSICA E MOVIMENTO DOS HUMANOS
     // ==========================================
     const boundLimit = HALF_FLOOR - 1.8;
 
@@ -764,9 +707,6 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
-          const prevX = agent.human.root.position.x;
-          const prevZ = agent.human.root.position.z;
-
           // 1. Movimento
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
@@ -774,7 +714,7 @@
           const currX = agent.human.root.position.x;
           const currZ = agent.human.root.position.z;
 
-          // 2. Animação de caminhada fluida
+          // 2. Animação de caminhada
           agent.walkCycle += agent.speed * 2.8;
           const legSwing = Math.sin(agent.walkCycle) * 0.65;
           const armSwing = Math.sin(agent.walkCycle) * 0.55;
@@ -787,14 +727,14 @@
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
-          // 3. Rotação na direção do movimento
+          // 3. Rotação suave na direção do movimento
           const targetAngle = Math.atan2(agent.vx, agent.vz);
           let diff = targetAngle - agent.human.root.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
           while (diff > Math.PI) diff -= Math.PI * 2;
           agent.human.root.rotation.y += diff * 0.1;
 
-          // 4. Rebatimento nas bordas
+          // 4. Rebatimento nas bordas do piso
           if (agent.human.root.position.x > boundLimit) { 
             agent.human.root.position.x = boundLimit; 
             agent.vx = -Math.abs(agent.vx); 
@@ -821,8 +761,8 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Pintura da Faixa Contínua Lisa (sem bolinhas)
-          paintContinuousSegment(agent.id, prevX, prevZ, currX, currZ);
+          // 6. Ativação da placa piezoelétrica quadrada atual
+          stepOnTile(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
           const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
@@ -848,8 +788,9 @@
     }
 
     // ==========================================
-    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
+    // 8. LOOP PRINCIPAL DE ANIMAÇÃO
     // ==========================================
+    let frameCounter = 0;
     function animate() {
       requestAnimationFrame(animate);
 
@@ -858,7 +799,7 @@
 
       frameCounter++;
       if (frameCounter % 2 === 0 && !isPaused) {
-        updateHeatmapTexture();
+        renderTilesToCanvas();
       }
 
       renderer.render(scene, camera);
@@ -866,7 +807,7 @@
     animate();
 
     // ==========================================
-    // 10. INTERAÇÃO E EVENTOS
+    // 9. INTERAÇÃO E EVENTOS
     // ==========================================
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -875,11 +816,10 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
-      passGrid.fill(0);
-      lastAgentGrid.fill(255);
-      lastTimeGrid.fill(0);
-      initFloorCanvas();
-      floorTexture.needsUpdate = true;
+      tilePasses.fill(0);
+      tileLastAgent.fill(255);
+      tileLastTime.fill(0);
+      renderTilesToCanvas();
       totalJoules = 0;
       totalSteps = 0;
       instantaneousWatts = 0;
