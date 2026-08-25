@@ -432,12 +432,11 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR INTELIGENTE
-    // Matrizes para garantir que 1 pessoa = 1 passada verde sem se auto-sobrepor
+    // 4. MOTOR DO MAPA DE CALOR (FAIXA CONTÍNUA LINTA)
     // ==========================================
     const passGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     const lastAgentGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
-    lastAgentGrid.fill(255); // 255 = nenhum agente passou
+    lastAgentGrid.fill(255);
     const lastTimeGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
@@ -610,8 +609,6 @@
     }
 
     const pedestrians = [];
-    const ripples = [];
-    const rippleGeo = new THREE.RingGeometry(0.1, 0.45, 32);
 
     for (let i = 0; i < NUM_AGENTS; i++) {
       const palette = humanPalettes[i % humanPalettes.length];
@@ -638,35 +635,22 @@
         speed: speed,
         walkCycle: Math.random() * Math.PI * 2,
         turnTimer: Math.random() * 60,
+        prevX: x,
+        prevZ: z,
         lastStepX: x,
         lastStepZ: z
       });
     }
 
-    function createStepRipple(x, z, colorHex) {
-      const rippleMat = new THREE.MeshBasicMaterial({
-        color: colorHex,
-        transparent: true,
-        opacity: 0.85,
-        side: THREE.DoubleSide
-      });
-      const rippleMesh = new THREE.Mesh(rippleGeo, rippleMat);
-      rippleMesh.rotation.x = -Math.PI / 2;
-      rippleMesh.position.set(x, 0.02, z);
-      scene.add(rippleMesh);
-
-      ripples.push({ mesh: rippleMesh, scale: 1, maxScale: 3.8, opacity: 0.85 });
-    }
-
     // ==========================================
-    // 7. CÁLCULO E PINTURA DO MAPA DE CALOR
+    // 7. CÁLCULO E PINTURA DO RASTRO EM FAIXA CONTÍNUA
     // 0 = Neutro
     // 1 = 100% Verde Sólido (#22c55e)
     // 2 = 100% Amarelo Sólido (#eab308)
     // 3 = 100% Vermelho Sólido (#ef4444)
     // 4+ = 100% Roxo Sólido (#a855f7)
     // ==========================================
-    const stampRadius = 11;
+    const ribbonRadius = 8; // Largura uniforme e limpa da faixa
 
     function getHeatColor(count, pixelX, pixelY) {
       if (count === 0) {
@@ -684,34 +668,47 @@
       return [168, 85, 247, 255];                   // 4ª+ Pessoas: Roxo Sólido
     }
 
-    // Pinta o rastro contínuo sem que a própria pessoa aumente a contagem dela mesma
-    function paintTrail(agentId, wx, wz) {
-      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
-      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+    // Pinta um segmento contínuo e liso entre a posição anterior e atual
+    function paintContinuousSegment(agentId, x0, z0, x1, z1) {
+      const p0x = ((x0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
+      const p0y = ((z0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
+      const p1x = ((x1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
+      const p1y = ((z1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES;
+
+      const dx = p1x - p0x;
+      const dy = p1y - p0y;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(dist / 1.5)); // Interpolação a cada 1.5px (sem bolinhas)
       const now = performance.now();
+      const r2 = ribbonRadius * ribbonRadius;
 
-      const r2 = stampRadius * stampRadius;
-      const minX = Math.max(0, cx - stampRadius);
-      const maxX = Math.min(HEATMAP_RES - 1, cx + stampRadius);
-      const minY = Math.max(0, cy - stampRadius);
-      const maxY = Math.min(HEATMAP_RES - 1, cy + stampRadius);
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps;
+        const cx = Math.floor(p0x + dx * t);
+        const cy = Math.floor(p0y + dy * t);
 
-      for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-          const dist2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-          if (dist2 <= r2) {
-            const idx = y * HEATMAP_RES + x;
-            const prevAgent = lastAgentGrid[idx];
-            const prevTime = lastTimeGrid[idx];
+        const minX = Math.max(0, cx - ribbonRadius);
+        const maxX = Math.min(HEATMAP_RES - 1, cx + ribbonRadius);
+        const minY = Math.max(0, cy - ribbonRadius);
+        const maxY = Math.min(HEATMAP_RES - 1, cy + ribbonRadius);
 
-            // Só incrementa de cor se for OUTRA pessoa ou se a mesma pessoa voltou após 2.5 segundos
-            if (prevAgent !== agentId || (now - prevTime > 2500)) {
-              if (passGrid[idx] < 4) {
-                passGrid[idx]++;
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+            if (d2 <= r2) {
+              const idx = y * HEATMAP_RES + x;
+              const prevAgent = lastAgentGrid[idx];
+              const prevTime = lastTimeGrid[idx];
+
+              // Incrementa de cor apenas se for OUTRA pessoa ou se a mesma pessoa voltou após 2.5 segundos
+              if (prevAgent !== agentId || (now - prevTime > 2500)) {
+                if (passGrid[idx] < 4) {
+                  passGrid[idx]++;
+                }
+                lastAgentGrid[idx] = agentId;
               }
-              lastAgentGrid[idx] = agentId;
+              lastTimeGrid[idx] = now;
             }
-            lastTimeGrid[idx] = now;
           }
         }
       }
@@ -741,7 +738,7 @@
 
       outputCtx.putImageData(imgData, 0, 0);
 
-      // Linhas finas da grade modular
+      // Grade suave das placas
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -767,11 +764,17 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
+          const prevX = agent.human.root.position.x;
+          const prevZ = agent.human.root.position.z;
+
           // 1. Movimento
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
 
-          // 2. Animação de caminhada
+          const currX = agent.human.root.position.x;
+          const currZ = agent.human.root.position.z;
+
+          // 2. Animação de caminhada fluida
           agent.walkCycle += agent.speed * 2.8;
           const legSwing = Math.sin(agent.walkCycle) * 0.65;
           const armSwing = Math.sin(agent.walkCycle) * 0.55;
@@ -818,27 +821,17 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Pintura contínua no piso (com inteligência de passos)
-          paintTrail(agent.id, agent.human.root.position.x, agent.human.root.position.z);
+          // 6. Pintura da Faixa Contínua Lisa (sem bolinhas)
+          paintContinuousSegment(agent.id, prevX, prevZ, currX, currZ);
 
-          // 7. Detecção de passos para telemetria piezoelétrica
-          const distSinceLastStep = Math.hypot(
-            agent.human.root.position.x - agent.lastStepX,
-            agent.human.root.position.z - agent.lastStepZ
-          );
-
+          // 7. Detecção de passos para telemetria
+          const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
           if (distSinceLastStep > 1.2) {
-            agent.lastStepX = agent.human.root.position.x;
-            agent.lastStepZ = agent.human.root.position.z;
+            agent.lastStepX = currX;
+            agent.lastStepZ = currZ;
             totalSteps++;
             totalJoules += JOULES_PER_STEP;
             stepOccurredThisFrame = true;
-
-            createStepRipple(
-              agent.human.root.position.x, 
-              agent.human.root.position.z, 
-              agent.human.colorHex
-            );
           }
         }
       });
@@ -854,32 +847,14 @@
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
     }
 
-    function updateRipples() {
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.scale += 0.08;
-        r.mesh.scale.set(r.scale, r.scale, 1);
-        r.opacity -= 0.035;
-        r.mesh.material.opacity = Math.max(0, r.opacity);
-
-        if (r.opacity <= 0 || r.scale >= r.maxScale) {
-          scene.remove(r.mesh);
-          r.mesh.geometry.dispose();
-          r.mesh.material.dispose();
-          ripples.splice(i, 1);
-        }
-      }
-    }
-
     // ==========================================
-    // 9. LOOP PRINCIPAL
+    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
     // ==========================================
     function animate() {
       requestAnimationFrame(animate);
 
       controls.update();
       updateAgents();
-      updateRipples();
 
       frameCounter++;
       if (frameCounter % 2 === 0 && !isPaused) {
