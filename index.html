@@ -370,7 +370,7 @@
     const NUM_AGENTS = 8;
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
-    const STAMP_RADIUS = 40; // Rastro largo, forte e bem encorpado
+    const STAMP_RADIUS = 22; // Espessura intermediária, elegante e precisa
     
     let isPaused = false;
     let totalJoules = 0;
@@ -433,9 +433,10 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR (CONTABILIZAÇÃO DE PESSOAS)
+    // 4. MOTOR DO MAPA DE CALOR (NÍVEL + DEGRADÊ SUAVE)
     // ==========================================
     const passCount = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
+    const passIntensity = new Float32Array(HEATMAP_RES * HEATMAP_RES);
     const lastVisitor = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     lastVisitor.fill(255);
 
@@ -633,17 +634,16 @@
     }
 
     // ==========================================
-    // 7. MAPEAMENTO DE CORES (PALETA VIBRANTE)
+    // 7. MAPEAMENTO DE CORES
     // ==========================================
     function getHeatColor(count) {
-      if (count === 0) return [12, 16, 24, 255];  // Neutro
-      if (count === 1) return [0, 255, 102, 255]; // 1 Pessoa: Verde Laser
-      if (count === 2) return [255, 234, 0, 255]; // 2 Pessoas: Amarelo Sol
-      if (count === 3) return [255, 30, 30, 255];  // 3 Pessoas: Vermelho Fogo
-      return [240, 0, 255, 255];                  // 4+ Pessoas: Roxo/Magenta Neon
+      if (count === 1) return [0, 255, 102];  // 1 Pessoa: Verde Laser
+      if (count === 2) return [255, 234, 0];  // 2 Pessoas: Amarelo Sol
+      if (count === 3) return [255, 30, 30];   // 3 Pessoas: Vermelho Fogo
+      return [240, 0, 255];                   // 4+ Pessoas: Roxo/Magenta Neon
     }
 
-    // Função de carimbo com atualização de cor 100% instantânea
+    // Carimbo com suavização/feathering radial
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
@@ -656,22 +656,33 @@
 
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
-          const dist2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist2 = dx * dx + dy * dy;
+
           if (dist2 <= r2) {
+            const dist = Math.sqrt(dist2);
+            const normDist = dist / STAMP_RADIUS;
+            // Curva harmônica de suavização (1 no centro, 0 na borda suave)
+            const falloff = 0.5 * (1 + Math.cos(Math.PI * normDist));
+
             const idx = y * HEATMAP_RES + x;
             const prev = lastVisitor[idx];
 
             if (prev === 255) {
-              // 1ª Pessoa passando por local inativo -> Verde imediato
+              // 1ª Pessoa passando por local inativo
               passCount[idx] = 1;
               lastVisitor[idx] = agentId;
             } else if (prev !== agentId) {
-              // Outra pessoa DIFERENTE cruzando o local -> Sobe de nível instantaneamente!
+              // Outra pessoa cruzando o local
               if (passCount[idx] < 4) {
                 passCount[idx]++;
               }
               lastVisitor[idx] = agentId;
             }
+
+            // Atualiza a intensidade com o degradê suave da passada
+            passIntensity[idx] = Math.max(passIntensity[idx], falloff);
           }
         }
       }
@@ -682,26 +693,31 @@
       const imgData = outputCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
       const data = imgData.data;
       let activePixels = 0;
+      const bg = [12, 16, 24]; // Tom de fundo escuro (#0c1018)
 
       for (let i = 0; i < passCount.length; i++) {
         const count = passCount[i];
-        if (count > 0) {
+        const alpha = passIntensity[i];
+
+        if (count > 0 && alpha > 0.01) {
           activePixels++;
           const col = getHeatColor(count);
           const pIdx = i * 4;
-          data[pIdx]     = col[0];
-          data[pIdx + 1] = col[1];
-          data[pIdx + 2] = col[2];
+
+          // Mistura suave (alpha blend) nas bordas com o fundo
+          data[pIdx]     = Math.round(bg[0] + (col[0] - bg[0]) * alpha);
+          data[pIdx + 1] = Math.round(bg[1] + (col[1] - bg[1]) * alpha);
+          data[pIdx + 2] = Math.round(bg[2] + (col[2] - bg[2]) * alpha);
           data[pIdx + 3] = 255;
         }
       }
 
       outputCtx.putImageData(imgData, 0, 0);
 
-      // Linhas de junção das placas piezoelétricas
+      // Linhas de junção discretas
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
-      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
       outputCtx.lineWidth = 1;
       for (let i = 0; i <= HEATMAP_RES; i += squareSize) {
         outputCtx.beginPath(); outputCtx.moveTo(i, 0); outputCtx.lineTo(i, HEATMAP_RES); outputCtx.stroke();
@@ -779,7 +795,7 @@
             agent.vz = Math.sin(blendedAngle) * agent.speed;
           }
 
-          // 6. Deposita o rastro com troca de cor instantânea
+          // 6. Deposita o rastro com degradê suave e cores instantâneas
           addHeatAtWorldPos(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
@@ -834,6 +850,7 @@
 
     document.getElementById('btn-reset').addEventListener('click', () => {
       passCount.fill(0);
+      passIntensity.fill(0);
       lastVisitor.fill(255);
       initFloorCanvas();
       floorTexture.needsUpdate = true;
