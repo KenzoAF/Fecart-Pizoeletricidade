@@ -48,7 +48,7 @@
       z-index: 10;
       width: 360px;
       max-width: calc(100vw - 40px);
-      background: rgba(13, 17, 23, 0.88);
+      background: rgba(13, 17, 23, 0.9);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -146,10 +146,10 @@
     }
 
     .swatch-neutral { background: #0f141c; border: 1px solid #334155; }
-    .swatch-green { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
-    .swatch-yellow { background: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.6); }
-    .swatch-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
-    .swatch-purple { background: #c026d3; box-shadow: 0 0 10px rgba(192, 38, 211, 0.7); }
+    .swatch-green { background: #00ff7f; box-shadow: 0 0 10px rgba(0, 255, 127, 0.7); }
+    .swatch-yellow { background: #ffe600; box-shadow: 0 0 10px rgba(255, 230, 0, 0.7); }
+    .swatch-red { background: #ff2222; box-shadow: 0 0 10px rgba(255, 34, 34, 0.7); }
+    .swatch-purple { background: #dc28ff; box-shadow: 0 0 10px rgba(220, 40, 255, 0.8); }
 
     .legend-traffic {
       font-weight: 600;
@@ -340,7 +340,7 @@
       </div>
       <div class="metric-card">
         <div class="metric-label">Área Ativada</div>
-        <div class="metric-value" id="val-coverage" style="color: #c026d3;">0.0%</div>
+        <div class="metric-value" id="val-coverage" style="color: #dc28ff;">0.0%</div>
       </div>
     </div>
 
@@ -433,7 +433,6 @@
 
     // ==========================================
     // 4. MOTOR DO MAPA DE CALOR DINÂMICO
-    // Matrizes para controle de calor e cruzamentos
     // ==========================================
     const heatGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
     const lastAgentGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
@@ -467,13 +466,16 @@
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     // ==========================================
-    // 5. GEOMETRIA DO PISO
+    // 5. GEOMETRIA DO PISO (COM BRILHO NEON EMISSIVO)
     // ==========================================
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorTexture,
-      roughness: 0.35,
-      metalness: 0.2,
+      emissiveMap: floorTexture,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 0.85, // Dá vida, força e brilho neon ao rastro
+      roughness: 0.3,
+      metalness: 0.1,
     });
 
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
@@ -639,40 +641,40 @@
     }
 
     // ==========================================
-    // 7. CÁLCULO DE CORES VIBRANTES E INTENSAS
+    // 7. CÁLCULO DE CORES NEON ULTRA-VIBRANTES
     // 0 = Neutro
-    // 1 = Verde Forte (#10b981 / #22c55e)
-    // 2 = Amarelo Vibrante (#facc15)
-    // 3 = Vermelho Intenso (#ef4444)
-    // 4+ = Roxo / Magenta Neon (#c026d3)
+    // 1 = Verde Elétrico Forte (#00ff7f)
+    // 2 = Amarelo Ouro Elétrico (#ffe600)
+    // 3 = Vermelho Fogo Elétrico (#ff2222)
+    // 4+ = Roxo / Magenta Neon (#dc28ff)
     // ==========================================
-    const stampRadius = 16;
+    const stampRadius = 24; // Rastro mais encorpado e largo
 
     function getHeatColor(val) {
       if (val < 0.1) {
         return [15, 20, 28, 255]; // Neutro
       }
 
-      // 1 Pessoa: Verde Forte e Opaco
+      // 1 Pessoa: Verde Neon Elétrico Forte
       if (val < 1.6) {
-        return [16, 185, 129, 255];
+        return [0, 255, 127, 255];
       }
 
-      // 2 Pessoas: Amarelo Vibrante
+      // 2 Pessoas: Amarelo Ouro Elétrico
       if (val < 2.6) {
-        return [250, 204, 21, 255];
+        return [255, 230, 0, 255];
       }
 
-      // 3 Pessoas: Vermelho Intenso
+      // 3 Pessoas: Vermelho Fogo Elétrico
       if (val < 3.6) {
-        return [239, 68, 68, 255];
+        return [255, 34, 34, 255];
       }
 
-      // 4+ Pessoas: Roxo / Magenta Neon
-      return [192, 38, 211, 255];
+      // 4+ Pessoas: Roxo / Magenta Neon Intenso
+      return [220, 40, 255, 255];
     }
 
-    // Deposita calor forte e detecta cruzamento de outras pessoas
+    // Deposita o rastro forte e detecta cruzamento de outras pessoas
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
@@ -692,19 +694,21 @@
             const prevAgent = lastAgentGrid[idx];
             const prevTime = lastTimeGrid[idx];
 
-            // Se for OUTRA pessoa ou a mesma pessoa após 2.5 segundos, avança de cor na hora
-            if (prevAgent !== agentId || (now - prevTime > 2500)) {
+            // Se for OUTRA pessoa cruzando ou a mesma após 1.5s, avança de cor na hora
+            if (prevAgent !== agentId && (now - prevTime > 1200)) {
               if (heatGrid[idx] < 4.0) {
                 heatGrid[idx] = Math.min(4.0, Math.floor(heatGrid[idx]) + 1.0);
               }
               lastAgentGrid[idx] = agentId;
+              lastTimeGrid[idx] = now;
             } else {
-              // Garante que o rastro inicial seja 100% verde forte
+              // Garante que o rastro inicial seja 100% verde forte e encorpado
               if (heatGrid[idx] < 1.0) {
                 heatGrid[idx] = 1.0;
+                lastAgentGrid[idx] = agentId;
+                lastTimeGrid[idx] = now;
               }
             }
-            lastTimeGrid[idx] = now;
           }
         }
       }
