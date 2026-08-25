@@ -367,9 +367,10 @@
     // ==========================================
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
-    const NUM_AGENTS = 7;
+    const NUM_AGENTS = 8;
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
+    const STAMP_RADIUS = 26; // Largura forte e encorpada
     
     let isPaused = false;
     let totalJoules = 0;
@@ -432,12 +433,12 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR DINÂMICO
+    // 4. MOTOR DO MAPA DE CALOR (CONTABILIZAÇÃO DE PESSOAS)
     // ==========================================
-    const heatGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
-    const lastAgentGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
-    lastAgentGrid.fill(255);
-    const lastTimeGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+    const passCount = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
+    const lastVisitor = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
+    lastVisitor.fill(255);
+    const lastVisitTime = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
@@ -466,14 +467,10 @@
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     // ==========================================
-    // 5. GEOMETRIA DO PISO (BRILHO 100% PURO)
+    // 5. GEOMETRIA DO PISO (BRILHO 100% TOTAL)
     // ==========================================
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
-    // MeshBasicMaterial garante que as cores do canvas apareçam com 100% de força e brilho total
-    const floorMat = new THREE.MeshBasicMaterial({
-      map: floorTexture
-    });
-
+    const floorMat = new THREE.MeshBasicMaterial({ map: floorTexture });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
     scene.add(floorMesh);
@@ -498,7 +495,8 @@
       { shirt: 0xea580c, pants: 0x475569, skin: 0xffd1b3, shoes: 0xffffff, hair: 0x78350f },
       { shirt: 0x9333ea, pants: 0x1e293b, skin: 0xc68642, shoes: 0x0f172a, hair: 0x0a0a0a },
       { shirt: 0x0891b2, pants: 0x334155, skin: 0xf1c27d, shoes: 0xffffff, hair: 0x292524 },
-      { shirt: 0x10b981, pants: 0x1e293b, skin: 0xffdbac, shoes: 0x1e1e1e, hair: 0x3f2e21 }
+      { shirt: 0x10b981, pants: 0x1e293b, skin: 0xffdbac, shoes: 0x1e1e1e, hair: 0x3f2e21 },
+      { shirt: 0xf59e0b, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x171717 }
     ];
 
     function createHumanModel(palette) {
@@ -609,11 +607,11 @@
       const palette = humanPalettes[i % humanPalettes.length];
       const human = createHumanModel(palette);
 
-      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 8);
-      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 8);
+      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
       human.root.position.set(x, 0, z);
 
-      const speed = 0.07 + Math.random() * 0.05;
+      const speed = 0.08 + Math.random() * 0.04;
       const angle = Math.random() * Math.PI * 2;
       const vx = Math.cos(angle) * speed;
       const vz = Math.sin(angle) * speed;
@@ -636,73 +634,48 @@
     }
 
     // ==========================================
-    // 7. CÁLCULO DE CORES ULTRA-FORTES E PURAS
-    // 0 = Neutro
-    // 1 = Verde Laser Ultra Forte (#00ff66)
-    // 2 = Amarelo Sol Elétrico (#ffea00)
-    // 3 = Vermelho Fogo Intenso (#ff1e1e)
-    // 4+ = Roxo / Magenta Neon (#f000ff)
+    // 7. LÓGICA DE CORES: 1=Verde, 2=Amarelo, 3=Vermelho, 4+=Roxo
     // ==========================================
-    const stampRadius = 28; // Rastro bem grosso e encorpado
-
-    function getHeatColor(val) {
-      if (val < 0.1) {
-        return [12, 16, 24, 255]; // Neutro
-      }
-
-      // 1 Pessoa: Verde Ultra Forte e Puro
-      if (val < 1.6) {
-        return [0, 255, 102, 255];
-      }
-
-      // 2 Pessoas: Amarelo Sol Ultra Forte
-      if (val < 2.6) {
-        return [255, 234, 0, 255];
-      }
-
-      // 3 Pessoas: Vermelho Fogo Ultra Forte
-      if (val < 3.6) {
-        return [255, 30, 30, 255];
-      }
-
-      // 4+ Pessoas: Roxo/Magenta Neon Ultra Forte
-      return [240, 0, 255, 255];
+    function getHeatColor(count) {
+      if (count === 0) return [12, 16, 24, 255]; // Neutro
+      if (count === 1) return [0, 255, 102, 255]; // 1 Pessoa: Verde
+      if (count === 2) return [255, 234, 0, 255]; // 2 Pessoas: Amarelo
+      if (count === 3) return [255, 30, 30, 255];  // 3 Pessoas: Vermelho
+      return [240, 0, 255, 255];                  // 4+ Pessoas: Roxo
     }
 
-    // Deposita rastro forte com mudança imediata ao cruzar
+    // Atualiza contagem de pessoas por pixel com cruzamento garantido
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const now = performance.now();
+      const r2 = STAMP_RADIUS * STAMP_RADIUS;
 
-      const r2 = stampRadius * stampRadius;
-      const minX = Math.max(0, cx - stampRadius);
-      const maxX = Math.min(HEATMAP_RES - 1, cx + stampRadius);
-      const minY = Math.max(0, cy - stampRadius);
-      const maxY = Math.min(HEATMAP_RES - 1, cy + stampRadius);
+      const minX = Math.max(0, cx - STAMP_RADIUS);
+      const maxX = Math.min(HEATMAP_RES - 1, cx + STAMP_RADIUS);
+      const minY = Math.max(0, cy - STAMP_RADIUS);
+      const maxY = Math.min(HEATMAP_RES - 1, cy + STAMP_RADIUS);
 
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
           const dist2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
           if (dist2 <= r2) {
             const idx = y * HEATMAP_RES + x;
-            const prevAgent = lastAgentGrid[idx];
-            const prevTime = lastTimeGrid[idx];
+            const prev = lastVisitor[idx];
+            const prevT = lastVisitTime[idx];
 
-            // Se for OUTRA pessoa cruzando ou a mesma após 1 segundo, sobe de nível na hora
-            if (prevAgent !== agentId && (now - prevTime > 1000)) {
-              if (heatGrid[idx] < 4.0) {
-                heatGrid[idx] = Math.min(4.0, Math.floor(heatGrid[idx]) + 1.0);
+            if (prev === 255) {
+              // 1ª Pessoa passando por chão novo -> Verde
+              passCount[idx] = 1;
+              lastVisitor[idx] = agentId;
+              lastVisitTime[idx] = now;
+            } else if (prev !== agentId || (now - prevT > 2000)) {
+              // Outra pessoa passando pelo mesmo lugar -> Sobe de nível
+              if (passCount[idx] < 4) {
+                passCount[idx]++;
               }
-              lastAgentGrid[idx] = agentId;
-              lastTimeGrid[idx] = now;
-            } else {
-              // Garante que o rastro inicial seja 100% verde ultra forte
-              if (heatGrid[idx] < 1.0) {
-                heatGrid[idx] = 1.0;
-                lastAgentGrid[idx] = agentId;
-                lastTimeGrid[idx] = now;
-              }
+              lastVisitor[idx] = agentId;
+              lastVisitTime[idx] = now;
             }
           }
         }
@@ -715,11 +688,11 @@
       const data = imgData.data;
       let activePixels = 0;
 
-      for (let i = 0; i < heatGrid.length; i++) {
-        const val = heatGrid[i];
-        if (val > 0.1) {
+      for (let i = 0; i < passCount.length; i++) {
+        const count = passCount[i];
+        if (count > 0) {
           activePixels++;
-          const col = getHeatColor(val);
+          const col = getHeatColor(count);
           const pIdx = i * 4;
           data[pIdx]     = col[0];
           data[pIdx + 1] = col[1];
@@ -742,7 +715,7 @@
 
       floorTexture.needsUpdate = true;
 
-      const coveragePercent = ((activePixels / heatGrid.length) * 100).toFixed(1);
+      const coveragePercent = ((activePixels / passCount.length) * 100).toFixed(1);
       document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
     }
 
@@ -800,17 +773,19 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // 5. Mudança suave de direção
+          // 5. Mudança de direção inteligente (atração suave para cruzamentos centrais)
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
-            agent.turnTimer = 80 + Math.random() * 140;
-            const deltaAngle = (Math.random() - 0.5) * 1.2;
-            const currentAngle = Math.atan2(agent.vz, agent.vx) + deltaAngle;
-            agent.vx = Math.cos(currentAngle) * agent.speed;
-            agent.vz = Math.sin(currentAngle) * agent.speed;
+            agent.turnTimer = 90 + Math.random() * 120;
+            // Tendência natural de passar pelo centro para gerar cruzamentos
+            const angleToCenter = Math.atan2(-currZ, -currX);
+            const currentAngle = Math.atan2(agent.vz, agent.vx);
+            const blendedAngle = currentAngle * 0.5 + angleToCenter * 0.5 + (Math.random() - 0.5) * 0.8;
+            agent.vx = Math.cos(blendedAngle) * agent.speed;
+            agent.vz = Math.sin(blendedAngle) * agent.speed;
           }
 
-          // 6. Deposita o rastro forte e encorpado
+          // 6. Deposita o rastro com progressão de cor
           addHeatAtWorldPos(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
@@ -864,9 +839,9 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
-      heatGrid.fill(0);
-      lastAgentGrid.fill(255);
-      lastTimeGrid.fill(0);
+      passCount.fill(0);
+      lastVisitor.fill(255);
+      lastVisitTime.fill(0);
       initFloorCanvas();
       floorTexture.needsUpdate = true;
       totalJoules = 0;
