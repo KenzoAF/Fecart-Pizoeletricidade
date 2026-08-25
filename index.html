@@ -48,13 +48,13 @@
       z-index: 10;
       width: 360px;
       max-width: calc(100vw - 40px);
-      background: rgba(13, 17, 23, 0.9);
+      background: rgba(13, 17, 23, 0.92);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 16px;
       padding: 20px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
       transition: transform 0.3s ease;
     }
 
@@ -120,7 +120,7 @@
       flex-direction: column;
       gap: 8px;
       margin-bottom: 18px;
-      background: rgba(0, 0, 0, 0.25);
+      background: rgba(0, 0, 0, 0.3);
       padding: 12px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.05);
@@ -145,11 +145,11 @@
       border-radius: 3px;
     }
 
-    .swatch-neutral { background: #0f141c; border: 1px solid #334155; }
-    .swatch-green { background: #00ff7f; box-shadow: 0 0 10px rgba(0, 255, 127, 0.7); }
-    .swatch-yellow { background: #ffe600; box-shadow: 0 0 10px rgba(255, 230, 0, 0.7); }
-    .swatch-red { background: #ff2222; box-shadow: 0 0 10px rgba(255, 34, 34, 0.7); }
-    .swatch-purple { background: #dc28ff; box-shadow: 0 0 10px rgba(220, 40, 255, 0.8); }
+    .swatch-neutral { background: #0c1018; border: 1px solid #334155; }
+    .swatch-green { background: #00ff66; box-shadow: 0 0 10px rgba(0, 255, 102, 0.8); }
+    .swatch-yellow { background: #ffea00; box-shadow: 0 0 10px rgba(255, 234, 0, 0.8); }
+    .swatch-red { background: #ff1e1e; box-shadow: 0 0 10px rgba(255, 30, 30, 0.8); }
+    .swatch-purple { background: #f000ff; box-shadow: 0 0 10px rgba(240, 0, 255, 0.9); }
 
     .legend-traffic {
       font-weight: 600;
@@ -340,7 +340,7 @@
       </div>
       <div class="metric-card">
         <div class="metric-label">Área Ativada</div>
-        <div class="metric-value" id="val-coverage" style="color: #dc28ff;">0.0%</div>
+        <div class="metric-value" id="val-coverage" style="color: #f000ff;">0.0%</div>
       </div>
     </div>
 
@@ -445,16 +445,16 @@
     const outputCtx = outputCanvas.getContext('2d');
 
     function initFloorCanvas() {
-      outputCtx.fillStyle = '#0f141c';
+      outputCtx.fillStyle = '#0c1018';
       outputCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
 
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       for (let r = 0; r < numSquares; r++) {
         for (let c = 0; c < numSquares; c++) {
-          outputCtx.fillStyle = (r + c) % 2 === 0 ? '#121824' : '#0c1017';
+          outputCtx.fillStyle = (r + c) % 2 === 0 ? '#101622' : '#0a0d14';
           outputCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
-          outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+          outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
           outputCtx.lineWidth = 1;
           outputCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
         }
@@ -466,21 +466,16 @@
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     // ==========================================
-    // 5. GEOMETRIA DO PISO (COM BRILHO NEON EMISSIVO)
+    // 5. GEOMETRIA DO PISO (BRILHO 100% PURO)
     // ==========================================
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
-    const floorMat = new THREE.MeshStandardMaterial({
-      map: floorTexture,
-      emissiveMap: floorTexture,
-      emissive: new THREE.Color(0xffffff),
-      emissiveIntensity: 0.85, // Dá vida, força e brilho neon ao rastro
-      roughness: 0.3,
-      metalness: 0.1,
+    // MeshBasicMaterial garante que as cores do canvas apareçam com 100% de força e brilho total
+    const floorMat = new THREE.MeshBasicMaterial({
+      map: floorTexture
     });
 
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
     const borderGeo = new THREE.BoxGeometry(FLOOR_SIZE + 1.2, 0.6, FLOOR_SIZE + 1.2);
@@ -641,40 +636,40 @@
     }
 
     // ==========================================
-    // 7. CÁLCULO DE CORES NEON ULTRA-VIBRANTES
+    // 7. CÁLCULO DE CORES ULTRA-FORTES E PURAS
     // 0 = Neutro
-    // 1 = Verde Elétrico Forte (#00ff7f)
-    // 2 = Amarelo Ouro Elétrico (#ffe600)
-    // 3 = Vermelho Fogo Elétrico (#ff2222)
-    // 4+ = Roxo / Magenta Neon (#dc28ff)
+    // 1 = Verde Laser Ultra Forte (#00ff66)
+    // 2 = Amarelo Sol Elétrico (#ffea00)
+    // 3 = Vermelho Fogo Intenso (#ff1e1e)
+    // 4+ = Roxo / Magenta Neon (#f000ff)
     // ==========================================
-    const stampRadius = 24; // Rastro mais encorpado e largo
+    const stampRadius = 28; // Rastro bem grosso e encorpado
 
     function getHeatColor(val) {
       if (val < 0.1) {
-        return [15, 20, 28, 255]; // Neutro
+        return [12, 16, 24, 255]; // Neutro
       }
 
-      // 1 Pessoa: Verde Neon Elétrico Forte
+      // 1 Pessoa: Verde Ultra Forte e Puro
       if (val < 1.6) {
-        return [0, 255, 127, 255];
+        return [0, 255, 102, 255];
       }
 
-      // 2 Pessoas: Amarelo Ouro Elétrico
+      // 2 Pessoas: Amarelo Sol Ultra Forte
       if (val < 2.6) {
-        return [255, 230, 0, 255];
+        return [255, 234, 0, 255];
       }
 
-      // 3 Pessoas: Vermelho Fogo Elétrico
+      // 3 Pessoas: Vermelho Fogo Ultra Forte
       if (val < 3.6) {
-        return [255, 34, 34, 255];
+        return [255, 30, 30, 255];
       }
 
-      // 4+ Pessoas: Roxo / Magenta Neon Intenso
-      return [220, 40, 255, 255];
+      // 4+ Pessoas: Roxo/Magenta Neon Ultra Forte
+      return [240, 0, 255, 255];
     }
 
-    // Deposita o rastro forte e detecta cruzamento de outras pessoas
+    // Deposita rastro forte com mudança imediata ao cruzar
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
@@ -694,15 +689,15 @@
             const prevAgent = lastAgentGrid[idx];
             const prevTime = lastTimeGrid[idx];
 
-            // Se for OUTRA pessoa cruzando ou a mesma após 1.5s, avança de cor na hora
-            if (prevAgent !== agentId && (now - prevTime > 1200)) {
+            // Se for OUTRA pessoa cruzando ou a mesma após 1 segundo, sobe de nível na hora
+            if (prevAgent !== agentId && (now - prevTime > 1000)) {
               if (heatGrid[idx] < 4.0) {
                 heatGrid[idx] = Math.min(4.0, Math.floor(heatGrid[idx]) + 1.0);
               }
               lastAgentGrid[idx] = agentId;
               lastTimeGrid[idx] = now;
             } else {
-              // Garante que o rastro inicial seja 100% verde forte e encorpado
+              // Garante que o rastro inicial seja 100% verde ultra forte
               if (heatGrid[idx] < 1.0) {
                 heatGrid[idx] = 1.0;
                 lastAgentGrid[idx] = agentId;
@@ -735,10 +730,10 @@
 
       outputCtx.putImageData(imgData, 0, 0);
 
-      // Linhas da grade discretas
+      // Linhas da grade das placas
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
-      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       outputCtx.lineWidth = 1;
       for (let i = 0; i <= HEATMAP_RES; i += squareSize) {
         outputCtx.beginPath(); outputCtx.moveTo(i, 0); outputCtx.lineTo(i, HEATMAP_RES); outputCtx.stroke();
@@ -815,7 +810,7 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Deposita calor contínuo forte e responsivo
+          // 6. Deposita o rastro forte e encorpado
           addHeatAtWorldPos(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
