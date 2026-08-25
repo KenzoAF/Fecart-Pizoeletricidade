@@ -370,7 +370,7 @@
     const NUM_AGENTS = 8;
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
-    const STAMP_RADIUS = 22; // Espessura intermediária, elegante e precisa
+    const STAMP_RADIUS = 14; // Proporcional aos passos dos bonecos
     
     let isPaused = false;
     let totalJoules = 0;
@@ -433,7 +433,7 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR (NÍVEL + DEGRADÊ SUAVE)
+    // 4. MOTOR DO MAPA DE CALOR (NÍVEL + SUAVIZAÇÃO RADIAL)
     // ==========================================
     const passCount = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     const passIntensity = new Float32Array(HEATMAP_RES * HEATMAP_RES);
@@ -467,7 +467,7 @@
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     // ==========================================
-    // 5. GEOMETRIA DO PISO (BRILHO 100% TOTAL)
+    // 5. GEOMETRIA DO PISO
     // ==========================================
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshBasicMaterial({ map: floorTexture });
@@ -663,8 +663,9 @@
           if (dist2 <= r2) {
             const dist = Math.sqrt(dist2);
             const normDist = dist / STAMP_RADIUS;
-            // Curva harmônica de suavização (1 no centro, 0 na borda suave)
-            const falloff = 0.5 * (1 + Math.cos(Math.PI * normDist));
+            
+            // Curva suave com centro sólido e queda suave até a borda
+            const falloff = Math.max(0, 1.0 - normDist * normDist);
 
             const idx = y * HEATMAP_RES + x;
             const prev = lastVisitor[idx];
@@ -699,15 +700,17 @@
         const count = passCount[i];
         const alpha = passIntensity[i];
 
-        if (count > 0 && alpha > 0.01) {
+        if (count > 0 && alpha > 0.02) {
           activePixels++;
           const col = getHeatColor(count);
           const pIdx = i * 4;
 
-          // Mistura suave (alpha blend) nas bordas com o fundo
-          data[pIdx]     = Math.round(bg[0] + (col[0] - bg[0]) * alpha);
-          data[pIdx + 1] = Math.round(bg[1] + (col[1] - bg[1]) * alpha);
-          data[pIdx + 2] = Math.round(bg[2] + (col[2] - bg[2]) * alpha);
+          // Curva smoothstep para transição ultra-suave
+          const smoothAlpha = alpha * alpha * (3 - 2 * alpha);
+
+          data[pIdx]     = Math.round(bg[0] + (col[0] - bg[0]) * smoothAlpha);
+          data[pIdx + 1] = Math.round(bg[1] + (col[1] - bg[1]) * smoothAlpha);
+          data[pIdx + 2] = Math.round(bg[2] + (col[2] - bg[2]) * smoothAlpha);
           data[pIdx + 3] = 255;
         }
       }
