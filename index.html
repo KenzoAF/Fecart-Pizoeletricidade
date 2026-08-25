@@ -105,7 +105,7 @@
       margin-bottom: 16px;
     }
 
-    /* Legenda do Mapa de Calor */
+    /* Legenda do Mapa de Calor (Cores Sólidas) */
     .section-title {
       font-size: 11px;
       font-weight: 700;
@@ -142,15 +142,14 @@
     .color-swatch {
       width: 14px;
       height: 14px;
-      border-radius: 4px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      border-radius: 3px;
     }
 
     .swatch-neutral { background: #0f141c; border: 1px solid #334155; }
-    .swatch-green { background: #22c55e; box-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
-    .swatch-yellow { background: #eab308; box-shadow: 0 0 10px rgba(234, 179, 8, 0.6); }
-    .swatch-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.7); }
-    .swatch-purple { background: #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.8); }
+    .swatch-green { background: #22c55e; }
+    .swatch-yellow { background: #eab308; }
+    .swatch-red { background: #ef4444; }
+    .swatch-purple { background: #a855f7; }
 
     .legend-traffic {
       font-weight: 600;
@@ -282,7 +281,7 @@
       Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
     </p>
 
-    <div class="section-title">Mapa de Calor por Passadas</div>
+    <div class="section-title">Mapa de Calor (Cores Sólidas)</div>
     <div class="legend-container">
       <div class="legend-item">
         <div class="legend-color-box">
@@ -295,7 +294,7 @@
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-green"></div>
-          <span class="legend-traffic">1ª Passada</span>
+          <span class="legend-traffic">1ª Pessoa</span>
         </div>
         <span class="legend-energy">Verde (~15W)</span>
       </div>
@@ -303,7 +302,7 @@
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-yellow"></div>
-          <span class="legend-traffic">2ª Passada</span>
+          <span class="legend-traffic">2ª Pessoa</span>
         </div>
         <span class="legend-energy">Amarelo (~30W)</span>
       </div>
@@ -311,7 +310,7 @@
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-red"></div>
-          <span class="legend-traffic">3ª Passada</span>
+          <span class="legend-traffic">3ª Pessoa</span>
         </div>
         <span class="legend-energy">Vermelho (~45W)</span>
       </div>
@@ -319,7 +318,7 @@
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-purple"></div>
-          <span class="legend-traffic">4ª+ Passadas</span>
+          <span class="legend-traffic">4ª+ Pessoas</span>
         </div>
         <span class="legend-energy">Roxo (Pico Máx.)</span>
       </div>
@@ -433,9 +432,9 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR DINÂMICO
+    // 4. MOTOR DO MAPA DE CALOR DINÂMICO (MATRIZ DE PASSADAS INTEIRAS)
     // ==========================================
-    const heatGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+    const passGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
@@ -656,19 +655,18 @@
     }
 
     // ==========================================
-    // 7. CÁLCULO E PINTURA DO MAPA DE CALOR POR PASSADAS
-    // Escala:
-    // 0 passadas: Neutro (tabuleiro)
-    // 1 passada: Verde (#22c55e)
-    // 2 passadas: Amarelo (#eab308)
-    // 3 passadas: Vermelho (#ef4444)
-    // 4+ passadas: Roxo (#a855f7)
+    // 7. CÁLCULO DE CORES SÓLIDAS PURAS (SEM DEGRADÊ)
+    // 0 = Neutro
+    // 1 = 100% Verde Sólido (#22c55e)
+    // 2 = 100% Amarelo Sólido (#eab308)
+    // 3 = 100% Vermelho Sólido (#ef4444)
+    // 4+ = 100% Roxo Sólido (#a855f7)
     // ==========================================
-    const stampRadius = 15;
+    const stampRadius = 13;
 
-    function getHeatColor(val, pixelX, pixelY) {
-      if (val < 0.2) {
-        // Fundo neutro (tabuleiro piezoelétrico)
+    function getHeatColor(count, pixelX, pixelY) {
+      if (count === 0) {
+        // Padrão de placa neutra
         const numSquares = 16;
         const squareSize = HEATMAP_RES / numSquares;
         const col = Math.floor(pixelX / squareSize);
@@ -677,23 +675,13 @@
         return isEven ? [18, 24, 36, 255] : [12, 16, 23, 255];
       }
 
-      // 1ª Passada: Verde
-      if (val < 1.6) {
-        return [34, 197, 94, 255];
-      }
-      // 2ª Passada: Amarelo
-      if (val < 2.6) {
-        return [234, 179, 8, 255];
-      }
-      // 3ª Passada: Vermelho
-      if (val < 3.6) {
-        return [239, 68, 68, 255];
-      }
-      // 4ª ou mais Passadas: Roxo
-      return [168, 85, 247, 255];
+      if (count === 1) return [34, 197, 94, 255];   // 1ª Pessoa: Verde Sólido
+      if (count === 2) return [234, 179, 8, 255];   // 2ª Pessoa: Amarelo Sólido
+      if (count === 3) return [239, 68, 68, 255];   // 3ª Pessoa: Vermelho Sólido
+      return [168, 85, 247, 255];                   // 4ª+ Pessoa: Roxo Sólido
     }
 
-    // Registra EXATAMENTE 1 passada no ponto do pé
+    // Registra o pisão sólido na matriz
     function addFootstepAtWorldPos(wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
@@ -708,10 +696,10 @@
         for (let x = minX; x <= maxX; x++) {
           const dist2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
           if (dist2 <= r2) {
-            const factor = Math.exp(-dist2 / (2 * (stampRadius / 2.0) ** 2));
             const idx = y * HEATMAP_RES + x;
-            // Adiciona 1 passada completa de valor
-            heatGrid[idx] = Math.min(4.5, heatGrid[idx] + factor * 1.0);
+            if (passGrid[idx] < 4) {
+              passGrid[idx]++;
+            }
           }
         }
       }
@@ -726,12 +714,12 @@
       for (let y = 0; y < HEATMAP_RES; y++) {
         for (let x = 0; x < HEATMAP_RES; x++) {
           const i = y * HEATMAP_RES + x;
-          const val = heatGrid[i];
+          const count = passGrid[i];
           const pIdx = i * 4;
 
-          if (val >= 0.2) activePixels++;
+          if (count > 0) activePixels++;
 
-          const col = getHeatColor(val, x, y);
+          const col = getHeatColor(count, x, y);
           data[pIdx]     = col[0];
           data[pIdx + 1] = col[1];
           data[pIdx + 2] = col[2];
@@ -741,6 +729,7 @@
 
       outputCtx.putImageData(imgData, 0, 0);
 
+      // Linhas da grade das placas
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -752,7 +741,7 @@
 
       floorTexture.needsUpdate = true;
 
-      const coveragePercent = ((activePixels / heatGrid.length) * 100).toFixed(1);
+      const coveragePercent = ((activePixels / passGrid.length) * 100).toFixed(1);
       document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
     }
 
@@ -780,7 +769,7 @@
           agent.human.leftArm.rotation.x = -armSwing;
           agent.human.rightArm.rotation.x = armSwing;
 
-          // Balanço natural do corpo
+          // Balanço suave do corpo
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
@@ -808,7 +797,7 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // Mudança de direção aleatória
+          // Mudança suave de direção
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 80 + Math.random() * 140;
@@ -832,17 +821,17 @@
             totalJoules += JOULES_PER_STEP;
             stepOccurredThisFrame = true;
 
-            // Calcula a posição alternada do pé esquerdo/direito
+            // Calcula a posição do pé esquerdo/direito
             const perpX = -agent.vz / agent.speed;
             const perpZ = agent.vx / agent.speed;
             const footSide = (agent.stepCount % 2 === 0) ? 0.35 : -0.35;
             const footX = agent.human.root.position.x + perpX * footSide;
             const footZ = agent.human.root.position.z + perpZ * footSide;
 
-            // 1. Carimba o mapa de calor no ponto do pé
+            // 1. Carimba a cor sólida exata
             addFootstepAtWorldPos(footX, footZ);
 
-            // 2. Cria o pulso piezoelétrico visual
+            // 2. Pulso piezoelétrico visual
             createStepRipple(footX, footZ, agent.human.colorHex);
           }
         }
@@ -905,7 +894,7 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
-      heatGrid.fill(0);
+      passGrid.fill(0);
       initFloorCanvas();
       floorTexture.needsUpdate = true;
       totalJoules = 0;
