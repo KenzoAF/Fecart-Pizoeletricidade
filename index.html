@@ -279,7 +279,7 @@
 
     <h1>Piso Gerador de Energia</h1>
     <p class="subtitle">
-      Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pedestres.
+      Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
     </p>
 
     <div class="section-title">Mapa de Calor por Passadas</div>
@@ -349,7 +349,7 @@
       <button class="btn" id="btn-reset" title="Limpar mapa de calor">
         🔄 Reiniciar Mapa
       </button>
-      <button class="btn btn-primary" id="btn-pause" title="Pausar pedestres">
+      <button class="btn btn-primary" id="btn-pause" title="Pausar pessoas">
         ⏸️ Pausar
       </button>
     </div>
@@ -492,9 +492,8 @@
     scene.add(outerGrid);
 
     // ==========================================
-    // 6. CRIAÇÃO DE MODELOS HUMANOS 3D (AVATARES)
+    // 6. CRIAÇÃO DE MODELOS HUMANOS 3D (PESSOAS)
     // ==========================================
-    // Paletas de roupas e tons de pele para cada pedestre
     const humanPalettes = [
       { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a, hair: 0x1e1b4b },
       { shirt: 0xdc2626, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x451a03 },
@@ -514,7 +513,7 @@
       const shoesMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.4 });
       const hairMat = new THREE.MeshStandardMaterial({ color: palette.hair, roughness: 0.8 });
 
-      // 1. Tronco / Camisa (Torso)
+      // Tronco / Camisa
       const torsoGeo = new THREE.BoxGeometry(0.7, 0.85, 0.45);
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
       torsoMesh.position.y = 1.4;
@@ -522,7 +521,7 @@
       torsoMesh.receiveShadow = true;
       humanGroup.add(torsoMesh);
 
-      // 2. Pescoço e Cabeça
+      // Cabeça
       const headGeo = new THREE.SphereGeometry(0.24, 16, 16);
       const headMesh = new THREE.Mesh(headGeo, skinMat);
       headMesh.position.y = 2.05;
@@ -536,7 +535,7 @@
       hairMesh.castShadow = true;
       humanGroup.add(hairMesh);
 
-      // 3. Braço Esquerdo (com pivô no ombro)
+      // Braço Esquerdo
       const leftArmPivot = new THREE.Group();
       leftArmPivot.position.set(-0.46, 1.75, 0);
       const armGeo = new THREE.BoxGeometry(0.2, 0.75, 0.2);
@@ -545,14 +544,13 @@
       leftArmMesh.castShadow = true;
       leftArmPivot.add(leftArmMesh);
 
-      // Mão esquerda
       const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
       const leftHandMesh = new THREE.Mesh(handGeo, skinMat);
       leftHandMesh.position.y = -0.76;
       leftArmPivot.add(leftHandMesh);
       humanGroup.add(leftArmPivot);
 
-      // 4. Braço Direito (com pivô no ombro)
+      // Braço Direito
       const rightArmPivot = new THREE.Group();
       rightArmPivot.position.set(0.46, 1.75, 0);
       const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
@@ -560,13 +558,12 @@
       rightArmMesh.castShadow = true;
       rightArmPivot.add(rightArmMesh);
 
-      // Mão direita
       const rightHandMesh = new THREE.Mesh(handGeo, skinMat);
       rightHandMesh.position.y = -0.76;
       rightArmPivot.add(rightHandMesh);
       humanGroup.add(rightArmPivot);
 
-      // 5. Perna Esquerda (com pivô no quadril)
+      // Perna Esquerda
       const leftLegPivot = new THREE.Group();
       leftLegPivot.position.set(-0.2, 0.95, 0);
       const legGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
@@ -576,7 +573,6 @@
       leftLegMesh.receiveShadow = true;
       leftLegPivot.add(leftLegMesh);
 
-      // Sapato Esquerdo
       const shoeGeo = new THREE.BoxGeometry(0.27, 0.15, 0.42);
       const leftShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
       leftShoeMesh.position.set(0, -0.88, 0.08);
@@ -584,7 +580,7 @@
       leftLegPivot.add(leftShoeMesh);
       humanGroup.add(leftLegPivot);
 
-      // 6. Perna Direita (com pivô no quadril)
+      // Perna Direita
       const rightLegPivot = new THREE.Group();
       rightLegPivot.position.set(0.2, 0.95, 0);
       const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
@@ -593,7 +589,6 @@
       rightLegMesh.receiveShadow = true;
       rightLegPivot.add(rightLegMesh);
 
-      // Sapato Direito
       const rightShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
       rightShoeMesh.position.set(0, -0.88, 0.08);
       rightShoeMesh.castShadow = true;
@@ -611,7 +606,6 @@
       };
     }
 
-    // Instanciar os pedestres
     const pedestrians = [];
     const ripples = [];
     const rippleGeo = new THREE.RingGeometry(0.1, 0.45, 32);
@@ -629,7 +623,6 @@
       const vx = Math.cos(angle) * speed;
       const vz = Math.sin(angle) * speed;
 
-      // Orientar o humano na direção em que está andando
       human.root.rotation.y = Math.atan2(vx, vz);
 
       scene.add(human.root);
@@ -757,36 +750,32 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
-          // 1. Atualizar Posição
+          // Atualiza posição
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
 
-          // 2. Animação Procedural de Caminhada (Walk Cycle)
+          // Ciclo de caminhada (pernas e braços)
           agent.walkCycle += agent.speed * 2.8;
           const legSwing = Math.sin(agent.walkCycle) * 0.65;
           const armSwing = Math.sin(agent.walkCycle) * 0.55;
 
-          // Pernas alternadas
           agent.human.leftLeg.rotation.x = legSwing;
           agent.human.rightLeg.rotation.x = -legSwing;
-
-          // Braços opostos às pernas
           agent.human.leftArm.rotation.x = -armSwing;
           agent.human.rightArm.rotation.x = armSwing;
 
-          // Leve balanço vertical e oscilação do tronco (Bobbing)
+          // Leve balanço do corpo ao andar
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
-          // 3. Suave rotação na direção do movimento
+          // Rotação suave na direção do movimento
           const targetAngle = Math.atan2(agent.vx, agent.vz);
-          // Interpolação angular suave
           let diff = targetAngle - agent.human.root.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
           while (diff > Math.PI) diff -= Math.PI * 2;
           agent.human.root.rotation.y += diff * 0.1;
 
-          // 4. Rebatimento nas bordas do piso
+          // Rebatimento nas bordas
           if (agent.human.root.position.x > boundLimit) { 
             agent.human.root.position.x = boundLimit; 
             agent.vx = -Math.abs(agent.vx); 
@@ -803,7 +792,7 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // 5. Mudança de direção orgânica aleatória periódica
+          // Mudança gradual de direção
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 80 + Math.random() * 140;
@@ -813,10 +802,10 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Registro no Mapa de Calor
+          // Pintura contínua no piso
           addHeatAtWorldPos(agent.human.root.position.x, agent.human.root.position.z);
 
-          // 7. Detecção de Passos e Efeito Piezoelétrico
+          // Detecção de passos
           const distSinceLastStep = Math.hypot(
             agent.human.root.position.x - agent.lastStepX,
             agent.human.root.position.z - agent.lastStepZ
@@ -838,7 +827,6 @@
         }
       });
 
-      // Cálculo de potência instantânea em Watts
       if (stepOccurredThisFrame) {
         instantaneousWatts = (NUM_AGENTS * 6.5) + (Math.random() * 8.0);
       } else {
@@ -868,7 +856,7 @@
     }
 
     // ==========================================
-    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
+    // 9. LOOP PRINCIPAL
     // ==========================================
     function animate() {
       requestAnimationFrame(animate);
