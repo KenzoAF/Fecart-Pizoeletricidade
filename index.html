@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
-  <!-- Three.js e OrbitControls via CDN -->
+  <!-- Three.js e OrbitControls via CDN Oficial -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
@@ -492,7 +492,7 @@
     scene.add(outerGrid);
 
     // ==========================================
-    // 6. CRIAÇÃO DE MODELOS HUMANOS 3D (PESSOAS)
+    // 6. MODELOS DE PESSOAS 3D (AVATARES)
     // ==========================================
     const humanPalettes = [
       { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a, hair: 0x1e1b4b },
@@ -764,11 +764,11 @@
           agent.human.leftArm.rotation.x = -armSwing;
           agent.human.rightArm.rotation.x = armSwing;
 
-          // Leve balanço do corpo ao andar
+          // Balanço natural do corpo
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
-          // Rotação suave na direção do movimento
+          // Rotação na direção do movimento
           const targetAngle = Math.atan2(agent.vx, agent.vz);
           let diff = targetAngle - agent.human.root.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
@@ -792,7 +792,7 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // Mudança gradual de direção
+          // Mudança suave de direção aleatória
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 80 + Math.random() * 140;
