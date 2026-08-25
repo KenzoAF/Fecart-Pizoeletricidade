@@ -48,7 +48,7 @@
       z-index: 10;
       width: 360px;
       max-width: calc(100vw - 40px);
-      background: rgba(13, 17, 23, 0.85);
+      background: rgba(13, 17, 23, 0.88);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -146,10 +146,10 @@
     }
 
     .swatch-neutral { background: #0f141c; border: 1px solid #334155; }
-    .swatch-green { background: #22c55e; }
-    .swatch-yellow { background: #eab308; }
-    .swatch-red { background: #ef4444; }
-    .swatch-purple { background: #a855f7; }
+    .swatch-green { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+    .swatch-yellow { background: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.6); }
+    .swatch-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+    .swatch-purple { background: #c026d3; box-shadow: 0 0 10px rgba(192, 38, 211, 0.7); }
 
     .legend-traffic {
       font-weight: 600;
@@ -281,46 +281,46 @@
       Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
     </p>
 
-    <div class="section-title">Mapa de Calor por Manchas</div>
+    <div class="section-title">Mapa de Calor por Pessoas</div>
     <div class="legend-container">
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-neutral"></div>
           <span class="legend-traffic">Inativo</span>
         </div>
-        <span class="legend-energy">0 Passadas</span>
+        <span class="legend-energy">0 Pessoas</span>
       </div>
 
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-green"></div>
-          <span class="legend-traffic">1ª Pessoa</span>
+          <span class="legend-traffic">Verde</span>
         </div>
-        <span class="legend-energy">Verde (~15W)</span>
+        <span class="legend-energy">1 Pessoa</span>
       </div>
 
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-yellow"></div>
-          <span class="legend-traffic">2ª Pessoa</span>
+          <span class="legend-traffic">Amarelo</span>
         </div>
-        <span class="legend-energy">Amarelo (~30W)</span>
+        <span class="legend-energy">2 Pessoas</span>
       </div>
 
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-red"></div>
-          <span class="legend-traffic">3ª Pessoa</span>
+          <span class="legend-traffic">Vermelho</span>
         </div>
-        <span class="legend-energy">Vermelho (~45W)</span>
+        <span class="legend-energy">3 Pessoas</span>
       </div>
 
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-purple"></div>
-          <span class="legend-traffic">4ª+ Pessoas</span>
+          <span class="legend-traffic">Roxo</span>
         </div>
-        <span class="legend-energy">Roxo (Pico Máx.)</span>
+        <span class="legend-energy">4+ Pessoas</span>
       </div>
     </div>
 
@@ -340,7 +340,7 @@
       </div>
       <div class="metric-card">
         <div class="metric-label">Área Ativada</div>
-        <div class="metric-value" id="val-coverage" style="color: #a855f7;">0.0%</div>
+        <div class="metric-value" id="val-coverage" style="color: #c026d3;">0.0%</div>
       </div>
     </div>
 
@@ -368,9 +368,8 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 7;
-    const CANVAS_RES = 512;
+    const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
-    const STROKE_WIDTH = 22; // Largura suave e contínua da mancha
     
     let isPaused = false;
     let totalJoules = 0;
@@ -433,138 +432,39 @@
     });
 
     // ==========================================
-    // 4. MOTOR DE MANCHAS CONTÍNUAS FLUIDAS (CANVAS MULTICAMADAS)
+    // 4. MOTOR DO MAPA DE CALOR DINÂMICO
+    // Matrizes para controle de calor e cruzamentos
     // ==========================================
-    // Matrizes para controle lógico dos cruzamentos
-    const GRID_DIM = 128;
-    const levelGrid = new Uint8Array(GRID_DIM * GRID_DIM);
-    const lastAgentGrid = new Uint8Array(GRID_DIM * GRID_DIM);
+    const heatGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+    const lastAgentGrid = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     lastAgentGrid.fill(255);
-    const lastTimeGrid = new Float32Array(GRID_DIM * GRID_DIM);
+    const lastTimeGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
-    // 4 Camadas de manchas líquidas
-    function createLayer(color) {
-      const c = document.createElement('canvas');
-      c.width = CANVAS_RES;
-      c.height = CANVAS_RES;
-      const ctx = c.getContext('2d');
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = STROKE_WIDTH;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      return { canvas: c, ctx: ctx };
-    }
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = HEATMAP_RES;
+    outputCanvas.height = HEATMAP_RES;
+    const outputCtx = outputCanvas.getContext('2d');
 
-    const layerGreen  = createLayer('#22c55e'); // 1ª Pessoa
-    const layerYellow = createLayer('#eab308'); // 2ª Pessoa
-    const layerRed    = createLayer('#ef4444'); // 3ª Pessoa
-    const layerPurple = createLayer('#a855f7'); // 4ª+ Pessoas
-
-    // Canvas de Fundo (Piso Neutro)
-    const bgCanvas = document.createElement('canvas');
-    bgCanvas.width = CANVAS_RES;
-    bgCanvas.height = CANVAS_RES;
-    const bgCtx = bgCanvas.getContext('2d');
-
-    function initBackground() {
-      bgCtx.fillStyle = '#0f141c';
-      bgCtx.fillRect(0, 0, CANVAS_RES, CANVAS_RES);
+    function initFloorCanvas() {
+      outputCtx.fillStyle = '#0f141c';
+      outputCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
 
       const numSquares = 16;
-      const squareSize = CANVAS_RES / numSquares;
+      const squareSize = HEATMAP_RES / numSquares;
       for (let r = 0; r < numSquares; r++) {
         for (let c = 0; c < numSquares; c++) {
-          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#121824' : '#0c1017';
-          bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
-          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-          bgCtx.lineWidth = 1;
-          bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          outputCtx.fillStyle = (r + c) % 2 === 0 ? '#121824' : '#0c1017';
+          outputCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+          outputCtx.lineWidth = 1;
+          outputCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
         }
       }
     }
-    initBackground();
+    initFloorCanvas();
 
-    // Canvas Principal Composto enviado ao Three.js
-    const mainCanvas = document.createElement('canvas');
-    mainCanvas.width = CANVAS_RES;
-    mainCanvas.height = CANVAS_RES;
-    const mainCtx = mainCanvas.getContext('2d');
-
-    const floorTexture = new THREE.CanvasTexture(mainCanvas);
+    const floorTexture = new THREE.CanvasTexture(outputCanvas);
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-    // Desenha uma pincelada fluida e contínua (mancha líquida)
-    function paintFluidStain(agentId, x0, z0, x1, z1) {
-      const p0x = ((x0 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
-      const p0y = ((z0 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
-      const p1x = ((x1 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
-      const p1y = ((z1 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
-
-      // Amostragem na matriz lógica
-      const gx = Math.min(GRID_DIM - 1, Math.max(0, Math.floor(((x1 + HALF_FLOOR) / FLOOR_SIZE) * GRID_DIM)));
-      const gy = Math.min(GRID_DIM - 1, Math.max(0, Math.floor(((z1 + HALF_FLOOR) / FLOOR_SIZE) * GRID_DIM)));
-      const gIdx = gy * GRID_DIM + gx;
-
-      const now = performance.now();
-      const currentLevel = levelGrid[gIdx];
-      const prevAgent = lastAgentGrid[gIdx];
-      const prevTime = lastTimeGrid[gIdx];
-
-      let targetLevel = currentLevel;
-
-      // Se for OUTRA pessoa ou a mesma após 2.5s, sobe de cor
-      if (prevAgent !== agentId || (now - prevTime > 2500)) {
-        if (targetLevel < 4) {
-          targetLevel++;
-        }
-        levelGrid[gIdx] = targetLevel;
-        lastAgentGrid[gIdx] = agentId;
-      }
-      lastTimeGrid[gIdx] = now;
-
-      // Seleciona a camada da mancha correspondente
-      let targetCtx;
-      if (targetLevel <= 1) targetCtx = layerGreen.ctx;
-      else if (targetLevel === 2) targetCtx = layerYellow.ctx;
-      else if (targetLevel === 3) targetCtx = layerRed.ctx;
-      else targetCtx = layerPurple.ctx;
-
-      // Pinta o traço fluido vetorial
-      targetCtx.beginPath();
-      targetCtx.moveTo(p0x, p0y);
-      targetCtx.lineTo(p1x, p1y);
-      targetCtx.stroke();
-    }
-
-    function composeFloor() {
-      mainCtx.drawImage(bgCanvas, 0, 0);
-      mainCtx.drawImage(layerGreen.canvas, 0, 0);
-      mainCtx.drawImage(layerYellow.canvas, 0, 0);
-      mainCtx.drawImage(layerRed.canvas, 0, 0);
-      mainCtx.drawImage(layerPurple.canvas, 0, 0);
-
-      // Grade sutil por cima
-      const numSquares = 16;
-      const squareSize = CANVAS_RES / numSquares;
-      mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      mainCtx.lineWidth = 1;
-      for (let i = 0; i <= CANVAS_RES; i += squareSize) {
-        mainCtx.beginPath(); mainCtx.moveTo(i, 0); mainCtx.lineTo(i, CANVAS_RES); mainCtx.stroke();
-        mainCtx.beginPath(); mainCtx.moveTo(0, i); mainCtx.lineTo(CANVAS_RES, i); mainCtx.stroke();
-      }
-
-      floorTexture.needsUpdate = true;
-
-      // Cálculo de % de área ativada
-      let activeCount = 0;
-      for (let i = 0; i < levelGrid.length; i++) {
-        if (levelGrid[i] > 0) activeCount++;
-      }
-      const coveragePercent = ((activeCount / levelGrid.length) * 100).toFixed(1);
-      document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
-    }
-    composeFloor();
 
     // ==========================================
     // 5. GEOMETRIA DO PISO
@@ -572,8 +472,8 @@
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorTexture,
-      roughness: 0.45,
-      metalness: 0.25,
+      roughness: 0.35,
+      metalness: 0.2,
     });
 
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
@@ -739,7 +639,116 @@
     }
 
     // ==========================================
-    // 7. FÍSICA E MOVIMENTO DOS HUMANOS
+    // 7. CÁLCULO DE CORES VIBRANTES E INTENSAS
+    // 0 = Neutro
+    // 1 = Verde Forte (#10b981 / #22c55e)
+    // 2 = Amarelo Vibrante (#facc15)
+    // 3 = Vermelho Intenso (#ef4444)
+    // 4+ = Roxo / Magenta Neon (#c026d3)
+    // ==========================================
+    const stampRadius = 16;
+
+    function getHeatColor(val) {
+      if (val < 0.1) {
+        return [15, 20, 28, 255]; // Neutro
+      }
+
+      // 1 Pessoa: Verde Forte e Opaco
+      if (val < 1.6) {
+        return [16, 185, 129, 255];
+      }
+
+      // 2 Pessoas: Amarelo Vibrante
+      if (val < 2.6) {
+        return [250, 204, 21, 255];
+      }
+
+      // 3 Pessoas: Vermelho Intenso
+      if (val < 3.6) {
+        return [239, 68, 68, 255];
+      }
+
+      // 4+ Pessoas: Roxo / Magenta Neon
+      return [192, 38, 211, 255];
+    }
+
+    // Deposita calor forte e detecta cruzamento de outras pessoas
+    function addHeatAtWorldPos(agentId, wx, wz) {
+      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const now = performance.now();
+
+      const r2 = stampRadius * stampRadius;
+      const minX = Math.max(0, cx - stampRadius);
+      const maxX = Math.min(HEATMAP_RES - 1, cx + stampRadius);
+      const minY = Math.max(0, cy - stampRadius);
+      const maxY = Math.min(HEATMAP_RES - 1, cy + stampRadius);
+
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const dist2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+          if (dist2 <= r2) {
+            const idx = y * HEATMAP_RES + x;
+            const prevAgent = lastAgentGrid[idx];
+            const prevTime = lastTimeGrid[idx];
+
+            // Se for OUTRA pessoa ou a mesma pessoa após 2.5 segundos, avança de cor na hora
+            if (prevAgent !== agentId || (now - prevTime > 2500)) {
+              if (heatGrid[idx] < 4.0) {
+                heatGrid[idx] = Math.min(4.0, Math.floor(heatGrid[idx]) + 1.0);
+              }
+              lastAgentGrid[idx] = agentId;
+            } else {
+              // Garante que o rastro inicial seja 100% verde forte
+              if (heatGrid[idx] < 1.0) {
+                heatGrid[idx] = 1.0;
+              }
+            }
+            lastTimeGrid[idx] = now;
+          }
+        }
+      }
+    }
+
+    let frameCounter = 0;
+    function updateHeatmapTexture() {
+      const imgData = outputCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
+      const data = imgData.data;
+      let activePixels = 0;
+
+      for (let i = 0; i < heatGrid.length; i++) {
+        const val = heatGrid[i];
+        if (val > 0.1) {
+          activePixels++;
+          const col = getHeatColor(val);
+          const pIdx = i * 4;
+          data[pIdx]     = col[0];
+          data[pIdx + 1] = col[1];
+          data[pIdx + 2] = col[2];
+          data[pIdx + 3] = 255;
+        }
+      }
+
+      outputCtx.putImageData(imgData, 0, 0);
+
+      // Linhas da grade discretas
+      const numSquares = 16;
+      const squareSize = HEATMAP_RES / numSquares;
+      outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      outputCtx.lineWidth = 1;
+      for (let i = 0; i <= HEATMAP_RES; i += squareSize) {
+        outputCtx.beginPath(); outputCtx.moveTo(i, 0); outputCtx.lineTo(i, HEATMAP_RES); outputCtx.stroke();
+        outputCtx.beginPath(); outputCtx.moveTo(0, i); outputCtx.lineTo(HEATMAP_RES, i); outputCtx.stroke();
+      }
+
+      floorTexture.needsUpdate = true;
+
+      const coveragePercent = ((activePixels / heatGrid.length) * 100).toFixed(1);
+      document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
+    }
+
+    // ==========================================
+    // 8. FÍSICA E MOVIMENTO DOS HUMANOS
     // ==========================================
     const boundLimit = HALF_FLOOR - 1.8;
 
@@ -748,9 +757,6 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
-          const prevX = agent.human.root.position.x;
-          const prevZ = agent.human.root.position.z;
-
           // 1. Movimento
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
@@ -771,7 +777,7 @@
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
-          // 3. Rotação suave na direção do movimento
+          // 3. Rotação na direção do movimento
           const targetAngle = Math.atan2(agent.vx, agent.vz);
           let diff = targetAngle - agent.human.root.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
@@ -805,8 +811,8 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Pinta a mancha fluida contínua
-          paintFluidStain(agent.id, prevX, prevZ, currX, currZ);
+          // 6. Deposita calor contínuo forte e responsivo
+          addHeatAtWorldPos(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
           const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
@@ -832,9 +838,8 @@
     }
 
     // ==========================================
-    // 8. LOOP PRINCIPAL DE ANIMAÇÃO
+    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
     // ==========================================
-    let frameCounter = 0;
     function animate() {
       requestAnimationFrame(animate);
 
@@ -843,7 +848,7 @@
 
       frameCounter++;
       if (frameCounter % 2 === 0 && !isPaused) {
-        composeFloor();
+        updateHeatmapTexture();
       }
 
       renderer.render(scene, camera);
@@ -851,7 +856,7 @@
     animate();
 
     // ==========================================
-    // 9. INTERAÇÃO E EVENTOS
+    // 10. INTERAÇÃO E EVENTOS
     // ==========================================
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -860,14 +865,11 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
-      layerGreen.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
-      layerYellow.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
-      layerRed.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
-      layerPurple.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
-      levelGrid.fill(0);
+      heatGrid.fill(0);
       lastAgentGrid.fill(255);
       lastTimeGrid.fill(0);
-      composeFloor();
+      initFloorCanvas();
+      floorTexture.needsUpdate = true;
       totalJoules = 0;
       totalSteps = 0;
       instantaneousWatts = 0;
