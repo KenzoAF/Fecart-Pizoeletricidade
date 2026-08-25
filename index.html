@@ -370,7 +370,7 @@
     const NUM_AGENTS = 8;
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
-    const STAMP_RADIUS = 26; // Largura forte e encorpada
+    const STAMP_RADIUS = 40; // Rastro largo, forte e bem encorpado
     
     let isPaused = false;
     let totalJoules = 0;
@@ -438,7 +438,6 @@
     const passCount = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     const lastVisitor = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
     lastVisitor.fill(255);
-    const lastVisitTime = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
@@ -634,21 +633,20 @@
     }
 
     // ==========================================
-    // 7. LÓGICA DE CORES: 1=Verde, 2=Amarelo, 3=Vermelho, 4+=Roxo
+    // 7. MAPEAMENTO DE CORES (PALETA VIBRANTE)
     // ==========================================
     function getHeatColor(count) {
-      if (count === 0) return [12, 16, 24, 255]; // Neutro
-      if (count === 1) return [0, 255, 102, 255]; // 1 Pessoa: Verde
-      if (count === 2) return [255, 234, 0, 255]; // 2 Pessoas: Amarelo
-      if (count === 3) return [255, 30, 30, 255];  // 3 Pessoas: Vermelho
-      return [240, 0, 255, 255];                  // 4+ Pessoas: Roxo
+      if (count === 0) return [12, 16, 24, 255];  // Neutro
+      if (count === 1) return [0, 255, 102, 255]; // 1 Pessoa: Verde Laser
+      if (count === 2) return [255, 234, 0, 255]; // 2 Pessoas: Amarelo Sol
+      if (count === 3) return [255, 30, 30, 255];  // 3 Pessoas: Vermelho Fogo
+      return [240, 0, 255, 255];                  // 4+ Pessoas: Roxo/Magenta Neon
     }
 
-    // Atualiza contagem de pessoas por pixel com cruzamento garantido
+    // Função de carimbo com atualização de cor 100% instantânea
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
-      const now = performance.now();
       const r2 = STAMP_RADIUS * STAMP_RADIUS;
 
       const minX = Math.max(0, cx - STAMP_RADIUS);
@@ -662,20 +660,17 @@
           if (dist2 <= r2) {
             const idx = y * HEATMAP_RES + x;
             const prev = lastVisitor[idx];
-            const prevT = lastVisitTime[idx];
 
             if (prev === 255) {
-              // 1ª Pessoa passando por chão novo -> Verde
+              // 1ª Pessoa passando por local inativo -> Verde imediato
               passCount[idx] = 1;
               lastVisitor[idx] = agentId;
-              lastVisitTime[idx] = now;
-            } else if (prev !== agentId || (now - prevT > 2000)) {
-              // Outra pessoa passando pelo mesmo lugar -> Sobe de nível
+            } else if (prev !== agentId) {
+              // Outra pessoa DIFERENTE cruzando o local -> Sobe de nível instantaneamente!
               if (passCount[idx] < 4) {
                 passCount[idx]++;
               }
               lastVisitor[idx] = agentId;
-              lastVisitTime[idx] = now;
             }
           }
         }
@@ -703,7 +698,7 @@
 
       outputCtx.putImageData(imgData, 0, 0);
 
-      // Linhas da grade das placas
+      // Linhas de junção das placas piezoelétricas
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -773,11 +768,10 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // 5. Mudança de direção inteligente (atração suave para cruzamentos centrais)
+          // 5. Mudança de direção com atração para cruzamentos centrais
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 90 + Math.random() * 120;
-            // Tendência natural de passar pelo centro para gerar cruzamentos
             const angleToCenter = Math.atan2(-currZ, -currX);
             const currentAngle = Math.atan2(agent.vz, agent.vx);
             const blendedAngle = currentAngle * 0.5 + angleToCenter * 0.5 + (Math.random() - 0.5) * 0.8;
@@ -785,7 +779,7 @@
             agent.vz = Math.sin(blendedAngle) * agent.speed;
           }
 
-          // 6. Deposita o rastro com progressão de cor
+          // 6. Deposita o rastro com troca de cor instantânea
           addHeatAtWorldPos(agent.id, currX, currZ);
 
           // 7. Detecção de passos para telemetria
@@ -841,7 +835,6 @@
     document.getElementById('btn-reset').addEventListener('click', () => {
       passCount.fill(0);
       lastVisitor.fill(255);
-      lastVisitTime.fill(0);
       initFloorCanvas();
       floorTexture.needsUpdate = true;
       totalJoules = 0;
