@@ -6,8 +6,8 @@
   <title>Simulação de Piso Piezoelétrico | FECART</title>
   
   <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com/">
-  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
   <!-- Three.js e OrbitControls via CDN -->
@@ -383,7 +383,7 @@
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x08090d);
-    scene.fog = new THREE.FogExp2(0x08090d, 0.015);
+    scene.fog = new THREE.FogExp2(0x08090d, 0.012);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 36, 42);
@@ -406,10 +406,10 @@
     // ==========================================
     // 3. ILUMINAÇÃO
     // ==========================================
-    const ambientLight = new THREE.AmbientLight(0x2a3346, 1.2);
+    const ambientLight = new THREE.AmbientLight(0x38455e, 1.4);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
     dirLight.position.set(25, 45, 20);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
@@ -433,12 +433,8 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR DINÂMICO (TEXTURA DO TABULEIRO)
+    // 4. MOTOR DO MAPA DE CALOR DINÂMICO
     // ==========================================
-    const heatCanvas = document.createElement('canvas');
-    heatCanvas.width = HEATMAP_RES;
-    heatCanvas.height = HEATMAP_RES;
-
     const heatGrid = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
@@ -446,7 +442,6 @@
     outputCanvas.height = HEATMAP_RES;
     const outputCtx = outputCanvas.getContext('2d');
 
-    // Desenha a base inicial do piso/tabuleiro com alternância de tom nas celulas
     function initFloorCanvas() {
       outputCtx.fillStyle = '#0f141c';
       outputCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
@@ -497,51 +492,155 @@
     scene.add(outerGrid);
 
     // ==========================================
-    // 6. PEDESTRES (AGENTES 3D)
+    // 6. CRIAÇÃO DE MODELOS HUMANOS 3D (AVATARES)
     // ==========================================
-    const pedestrians = [];
-    const agentRadius = 0.75;
-    const sphereGeo = new THREE.SphereGeometry(agentRadius, 32, 32);
-
-    const agentColors = [
-      0x38bdf8, 0x818cf8, 0xc084fc, 0x34d399, 
-      0xf472b6, 0xfbbf24, 0x60a5fa, 0xa78bfa
+    // Paletas de roupas e tons de pele para cada pedestre
+    const humanPalettes = [
+      { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a, hair: 0x1e1b4b },
+      { shirt: 0xdc2626, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x451a03 },
+      { shirt: 0x16a34a, pants: 0x0f172a, skin: 0x8d5524, shoes: 0x1e293b, hair: 0x171717 },
+      { shirt: 0xea580c, pants: 0x475569, skin: 0xffd1b3, shoes: 0xffffff, hair: 0x78350f },
+      { shirt: 0x9333ea, pants: 0x1e293b, skin: 0xc68642, shoes: 0x0f172a, hair: 0x0a0a0a },
+      { shirt: 0x0891b2, pants: 0x334155, skin: 0xf1c27d, shoes: 0xffffff, hair: 0x292524 },
+      { shirt: 0x10b981, pants: 0x1e293b, skin: 0xffdbac, shoes: 0x1e1e1e, hair: 0x3f2e21 }
     ];
 
+    function createHumanModel(palette) {
+      const humanGroup = new THREE.Group();
+
+      const skinMat = new THREE.MeshStandardMaterial({ color: palette.skin, roughness: 0.6 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: palette.shirt, roughness: 0.5 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: palette.pants, roughness: 0.7 });
+      const shoesMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.4 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: palette.hair, roughness: 0.8 });
+
+      // 1. Tronco / Camisa (Torso)
+      const torsoGeo = new THREE.BoxGeometry(0.7, 0.85, 0.45);
+      const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+      torsoMesh.position.y = 1.4;
+      torsoMesh.castShadow = true;
+      torsoMesh.receiveShadow = true;
+      humanGroup.add(torsoMesh);
+
+      // 2. Pescoço e Cabeça
+      const headGeo = new THREE.SphereGeometry(0.24, 16, 16);
+      const headMesh = new THREE.Mesh(headGeo, skinMat);
+      headMesh.position.y = 2.05;
+      headMesh.castShadow = true;
+      humanGroup.add(headMesh);
+
+      // Cabelo
+      const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+      const hairMesh = new THREE.Mesh(hairGeo, hairMat);
+      hairMesh.position.y = 2.08;
+      hairMesh.castShadow = true;
+      humanGroup.add(hairMesh);
+
+      // 3. Braço Esquerdo (com pivô no ombro)
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(-0.46, 1.75, 0);
+      const armGeo = new THREE.BoxGeometry(0.2, 0.75, 0.2);
+      const leftArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      leftArmMesh.position.y = -0.35;
+      leftArmMesh.castShadow = true;
+      leftArmPivot.add(leftArmMesh);
+
+      // Mão esquerda
+      const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+      const leftHandMesh = new THREE.Mesh(handGeo, skinMat);
+      leftHandMesh.position.y = -0.76;
+      leftArmPivot.add(leftHandMesh);
+      humanGroup.add(leftArmPivot);
+
+      // 4. Braço Direito (com pivô no ombro)
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(0.46, 1.75, 0);
+      const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      rightArmMesh.position.y = -0.35;
+      rightArmMesh.castShadow = true;
+      rightArmPivot.add(rightArmMesh);
+
+      // Mão direita
+      const rightHandMesh = new THREE.Mesh(handGeo, skinMat);
+      rightHandMesh.position.y = -0.76;
+      rightArmPivot.add(rightHandMesh);
+      humanGroup.add(rightArmPivot);
+
+      // 5. Perna Esquerda (com pivô no quadril)
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(-0.2, 0.95, 0);
+      const legGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
+      const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      leftLegMesh.position.y = -0.42;
+      leftLegMesh.castShadow = true;
+      leftLegMesh.receiveShadow = true;
+      leftLegPivot.add(leftLegMesh);
+
+      // Sapato Esquerdo
+      const shoeGeo = new THREE.BoxGeometry(0.27, 0.15, 0.42);
+      const leftShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
+      leftShoeMesh.position.set(0, -0.88, 0.08);
+      leftShoeMesh.castShadow = true;
+      leftLegPivot.add(leftShoeMesh);
+      humanGroup.add(leftLegPivot);
+
+      // 6. Perna Direita (com pivô no quadril)
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(0.2, 0.95, 0);
+      const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      rightLegMesh.position.y = -0.42;
+      rightLegMesh.castShadow = true;
+      rightLegMesh.receiveShadow = true;
+      rightLegPivot.add(rightLegMesh);
+
+      // Sapato Direito
+      const rightShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
+      rightShoeMesh.position.set(0, -0.88, 0.08);
+      rightShoeMesh.castShadow = true;
+      rightLegPivot.add(rightShoeMesh);
+      humanGroup.add(rightLegPivot);
+
+      return {
+        root: humanGroup,
+        leftArm: leftArmPivot,
+        rightArm: rightArmPivot,
+        leftLeg: leftLegPivot,
+        rightLeg: rightLegPivot,
+        torso: torsoMesh,
+        colorHex: palette.shirt
+      };
+    }
+
+    // Instanciar os pedestres
+    const pedestrians = [];
     const ripples = [];
-    const rippleGeo = new THREE.RingGeometry(0.1, 0.4, 32);
+    const rippleGeo = new THREE.RingGeometry(0.1, 0.45, 32);
 
     for (let i = 0; i < NUM_AGENTS; i++) {
-      const color = agentColors[i % agentColors.length];
-      const sphereMat = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: color,
-        emissiveIntensity: 0.4,
-        roughness: 0.2,
-        metalness: 0.8
-      });
+      const palette = humanPalettes[i % humanPalettes.length];
+      const human = createHumanModel(palette);
 
-      const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
-      sphereMesh.castShadow = true;
-      
-      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 6);
-      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 6);
-      sphereMesh.position.set(x, agentRadius + 0.1, z);
+      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 8);
+      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 8);
+      human.root.position.set(x, 0, z);
 
-      const speed = 0.08 + Math.random() * 0.07;
+      const speed = 0.07 + Math.random() * 0.05;
       const angle = Math.random() * Math.PI * 2;
       const vx = Math.cos(angle) * speed;
       const vz = Math.sin(angle) * speed;
 
-      scene.add(sphereMesh);
+      // Orientar o humano na direção em que está andando
+      human.root.rotation.y = Math.atan2(vx, vz);
+
+      scene.add(human.root);
 
       pedestrians.push({
-        mesh: sphereMesh,
+        human: human,
         vx: vx,
         vz: vz,
         speed: speed,
+        walkCycle: Math.random() * Math.PI * 2,
         turnTimer: Math.random() * 60,
-        bobPhase: Math.random() * Math.PI * 2,
         lastStepX: x,
         lastStepZ: z
       });
@@ -551,7 +650,7 @@
       const rippleMat = new THREE.MeshBasicMaterial({
         color: colorHex,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.85,
         side: THREE.DoubleSide
       });
       const rippleMesh = new THREE.Mesh(rippleGeo, rippleMat);
@@ -559,23 +658,16 @@
       rippleMesh.position.set(x, 0.02, z);
       scene.add(rippleMesh);
 
-      ripples.push({ mesh: rippleMesh, scale: 1, maxScale: 3.5, opacity: 0.8 });
+      ripples.push({ mesh: rippleMesh, scale: 1, maxScale: 3.8, opacity: 0.85 });
     }
 
     // ==========================================
     // 7. CÁLCULO E PINTURA DO MAPA DE CALOR
-    // Regra pedida: 
-    // - 0 passadas: neutro (tabuleiro)
-    // - 1 passada: Verde
-    // - 2 passadas: Amarelo
-    // - 3 passadas: Laranja
-    // - 4+ passadas: Vermelho
     // ==========================================
-    const stampRadius = 14;      
+    const stampRadius = 14;
 
     function getHeatColor(val, pixelX, pixelY) {
       if (val < 0.1) {
-        // Preserva o padrão xadrez/tabuleiro nas partes não pisadas
         const numSquares = 16;
         const squareSize = HEATMAP_RES / numSquares;
         const col = Math.floor(pixelX / squareSize);
@@ -585,18 +677,12 @@
       }
 
       // 1 Passada (Verde)
-      if (val < 1.5) {
-        return [34, 197, 94, 255];
-      }
+      if (val < 1.5) return [34, 197, 94, 255];
       // 2 Passadas (Amarelo)
-      if (val < 2.5) {
-        return [234, 179, 8, 255];
-      }
+      if (val < 2.5) return [234, 179, 8, 255];
       // 3 Passadas (Laranja)
-      if (val < 3.5) {
-        return [249, 115, 22, 255];
-      }
-      // 4 ou mais passadas (Vermelho)
+      if (val < 3.5) return [249, 115, 22, 255];
+      // 4+ Passadas (Vermelho)
       return [239, 68, 68, 255];
     }
 
@@ -616,7 +702,6 @@
           if (dist2 <= r2) {
             const factor = Math.exp(-dist2 / (2 * (stampRadius / 2.2) ** 2));
             const idx = y * HEATMAP_RES + x;
-            // Incrementa o valor acumulativo de passadas no ponto
             heatGrid[idx] += factor * 0.45;
           }
         }
@@ -635,9 +720,7 @@
           const val = heatGrid[i];
           const pIdx = i * 4;
 
-          if (val >= 0.1) {
-            activePixels++;
-          }
+          if (val >= 0.1) activePixels++;
 
           const col = getHeatColor(val, x, y);
           data[pIdx]     = col[0];
@@ -649,7 +732,6 @@
 
       outputCtx.putImageData(imgData, 0, 0);
 
-      // Desenha as linhas do grid sobre a textura
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       outputCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -666,55 +748,97 @@
     }
 
     // ==========================================
-    // 8. FÍSICA E MOVIMENTO
+    // 8. FÍSICA E ANIMAÇÃO DOS HUMANOS
     // ==========================================
-    const boundLimit = HALF_FLOOR - agentRadius - 0.5;
+    const boundLimit = HALF_FLOOR - 1.8;
 
     function updateAgents() {
       let stepOccurredThisFrame = false;
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
-          agent.mesh.position.x += agent.vx;
-          agent.mesh.position.z += agent.vz;
+          // 1. Atualizar Posição
+          agent.human.root.position.x += agent.vx;
+          agent.human.root.position.z += agent.vz;
 
-          agent.bobPhase += 0.15;
-          agent.mesh.position.y = agentRadius + 0.1 + Math.abs(Math.sin(agent.bobPhase)) * 0.35;
+          // 2. Animação Procedural de Caminhada (Walk Cycle)
+          agent.walkCycle += agent.speed * 2.8;
+          const legSwing = Math.sin(agent.walkCycle) * 0.65;
+          const armSwing = Math.sin(agent.walkCycle) * 0.55;
 
-          if (agent.mesh.position.x > boundLimit) { agent.mesh.position.x = boundLimit; agent.vx = -Math.abs(agent.vx); }
-          else if (agent.mesh.position.x < -boundLimit) { agent.mesh.position.x = -boundLimit; agent.vx = Math.abs(agent.vx); }
+          // Pernas alternadas
+          agent.human.leftLeg.rotation.x = legSwing;
+          agent.human.rightLeg.rotation.x = -legSwing;
 
-          if (agent.mesh.position.z > boundLimit) { agent.mesh.position.z = boundLimit; agent.vz = -Math.abs(agent.vz); }
-          else if (agent.mesh.position.z < -boundLimit) { agent.mesh.position.z = -boundLimit; agent.vz = Math.abs(agent.vz); }
+          // Braços opostos às pernas
+          agent.human.leftArm.rotation.x = -armSwing;
+          agent.human.rightArm.rotation.x = armSwing;
 
+          // Leve balanço vertical e oscilação do tronco (Bobbing)
+          agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
+          agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
+
+          // 3. Suave rotação na direção do movimento
+          const targetAngle = Math.atan2(agent.vx, agent.vz);
+          // Interpolação angular suave
+          let diff = targetAngle - agent.human.root.rotation.y;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          agent.human.root.rotation.y += diff * 0.1;
+
+          // 4. Rebatimento nas bordas do piso
+          if (agent.human.root.position.x > boundLimit) { 
+            agent.human.root.position.x = boundLimit; 
+            agent.vx = -Math.abs(agent.vx); 
+          } else if (agent.human.root.position.x < -boundLimit) { 
+            agent.human.root.position.x = -boundLimit; 
+            agent.vx = Math.abs(agent.vx); 
+          }
+
+          if (agent.human.root.position.z > boundLimit) { 
+            agent.human.root.position.z = boundLimit; 
+            agent.vz = -Math.abs(agent.vz); 
+          } else if (agent.human.root.position.z < -boundLimit) { 
+            agent.human.root.position.z = -boundLimit; 
+            agent.vz = Math.abs(agent.vz); 
+          }
+
+          // 5. Mudança de direção orgânica aleatória periódica
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
-            agent.turnTimer = 80 + Math.random() * 120;
+            agent.turnTimer = 80 + Math.random() * 140;
             const deltaAngle = (Math.random() - 0.5) * 1.2;
             const currentAngle = Math.atan2(agent.vz, agent.vx) + deltaAngle;
             agent.vx = Math.cos(currentAngle) * agent.speed;
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          addHeatAtWorldPos(agent.mesh.position.x, agent.mesh.position.z);
+          // 6. Registro no Mapa de Calor
+          addHeatAtWorldPos(agent.human.root.position.x, agent.human.root.position.z);
 
+          // 7. Detecção de Passos e Efeito Piezoelétrico
           const distSinceLastStep = Math.hypot(
-            agent.mesh.position.x - agent.lastStepX,
-            agent.mesh.position.z - agent.lastStepZ
+            agent.human.root.position.x - agent.lastStepX,
+            agent.human.root.position.z - agent.lastStepZ
           );
 
-          if (distSinceLastStep > 1.2) {
-            agent.lastStepX = agent.mesh.position.x;
-            agent.lastStepZ = agent.mesh.position.z;
+          if (distSinceLastStep > 1.3) {
+            agent.lastStepX = agent.human.root.position.x;
+            agent.lastStepZ = agent.human.root.position.z;
             totalSteps++;
             totalJoules += JOULES_PER_STEP;
             stepOccurredThisFrame = true;
 
-            createStepRipple(agent.mesh.position.x, agent.mesh.position.z, agent.mesh.material.color.getHex());
+            createStepRipple(
+              agent.human.root.position.x, 
+              agent.human.root.position.z, 
+              agent.human.colorHex
+            );
           }
         }
       });
 
+      // Cálculo de potência instantânea em Watts
       if (stepOccurredThisFrame) {
         instantaneousWatts = (NUM_AGENTS * 6.5) + (Math.random() * 8.0);
       } else {
@@ -744,7 +868,7 @@
     }
 
     // ==========================================
-    // 9. LOOP PRINCIPAL
+    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
     // ==========================================
     function animate() {
       requestAnimationFrame(animate);
