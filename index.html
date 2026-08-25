@@ -278,10 +278,10 @@
 
     <h1>Piso Gerador de Energia</h1>
     <p class="subtitle">
-      Conversão mecânica-elétrica via placas piezoelétricas acionadas pelo tráfego de pessoas.
+      Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
     </p>
 
-    <div class="section-title">Mapa de Calor por Placas</div>
+    <div class="section-title">Mapa de Calor por Manchas</div>
     <div class="legend-container">
       <div class="legend-item">
         <div class="legend-color-box">
@@ -368,10 +368,9 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 7;
-    const GRID_COUNT = 24;              // Grade de 24x24 placas quadradas perfeitas
-    const TOTAL_TILES = GRID_COUNT * GRID_COUNT;
     const CANVAS_RES = 512;
     const JOULES_PER_STEP = 4.8;
+    const STROKE_WIDTH = 22; // Largura suave e contínua da mancha
     
     let isPaused = false;
     let totalJoules = 0;
@@ -434,96 +433,138 @@
     });
 
     // ==========================================
-    // 4. MOTOR DE PLACAS MODULARES QUADRADAS
+    // 4. MOTOR DE MANCHAS CONTÍNUAS FLUIDAS (CANVAS MULTICAMADAS)
     // ==========================================
-    const tilePasses = new Uint8Array(TOTAL_TILES);
-    const tileLastAgent = new Uint8Array(TOTAL_TILES);
-    tileLastAgent.fill(255);
-    const tileLastTime = new Float32Array(TOTAL_TILES);
+    // Matrizes para controle lógico dos cruzamentos
+    const GRID_DIM = 128;
+    const levelGrid = new Uint8Array(GRID_DIM * GRID_DIM);
+    const lastAgentGrid = new Uint8Array(GRID_DIM * GRID_DIM);
+    lastAgentGrid.fill(255);
+    const lastTimeGrid = new Float32Array(GRID_DIM * GRID_DIM);
 
-    const floorCanvas = document.createElement('canvas');
-    floorCanvas.width = CANVAS_RES;
-    floorCanvas.height = CANVAS_RES;
-    const floorCtx = floorCanvas.getContext('2d');
-
-    const floorTexture = new THREE.CanvasTexture(floorCanvas);
-    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-    // Paleta de cores para cada placa modular
-    function getTileColor(count, r, c) {
-      if (count === 0) {
-        // Placa inativa com suave alternância de tom
-        return (r + c) % 2 === 0 ? '#121824' : '#0c1017';
-      }
-      if (count === 1) return '#22c55e'; // 1ª Pessoa: Verde
-      if (count === 2) return '#eab308'; // 2ª Pessoa: Amarelo
-      if (count === 3) return '#ef4444'; // 3ª Pessoa: Vermelho
-      return '#a855f7';                  // 4ª+ Pessoas: Roxo
+    // 4 Camadas de manchas líquidas
+    function createLayer(color) {
+      const c = document.createElement('canvas');
+      c.width = CANVAS_RES;
+      c.height = CANVAS_RES;
+      const ctx = c.getContext('2d');
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = STROKE_WIDTH;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      return { canvas: c, ctx: ctx };
     }
 
-    function renderTilesToCanvas() {
-      floorCtx.fillStyle = '#08090d';
-      floorCtx.fillRect(0, 0, CANVAS_RES, CANVAS_RES);
+    const layerGreen  = createLayer('#22c55e'); // 1ª Pessoa
+    const layerYellow = createLayer('#eab308'); // 2ª Pessoa
+    const layerRed    = createLayer('#ef4444'); // 3ª Pessoa
+    const layerPurple = createLayer('#a855f7'); // 4ª+ Pessoas
 
-      const tileSize = CANVAS_RES / GRID_COUNT;
-      const gap = 1.2; // Espaço de junta entre placas piezoelétricas
-      let activeCount = 0;
+    // Canvas de Fundo (Piso Neutro)
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = CANVAS_RES;
+    bgCanvas.height = CANVAS_RES;
+    const bgCtx = bgCanvas.getContext('2d');
 
-      for (let r = 0; r < GRID_COUNT; r++) {
-        for (let c = 0; c < GRID_COUNT; c++) {
-          const idx = r * GRID_COUNT + c;
-          const count = tilePasses[idx];
+    function initBackground() {
+      bgCtx.fillStyle = '#0f141c';
+      bgCtx.fillRect(0, 0, CANVAS_RES, CANVAS_RES);
 
-          if (count > 0) activeCount++;
-
-          floorCtx.fillStyle = getTileColor(count, r, c);
-          floorCtx.fillRect(
-            c * tileSize + gap,
-            r * tileSize + gap,
-            tileSize - gap * 2,
-            tileSize - gap * 2
-          );
-
-          // Borda de acabamento do módulo
-          floorCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-          floorCtx.lineWidth = 1;
-          floorCtx.strokeRect(
-            c * tileSize + gap,
-            r * tileSize + gap,
-            tileSize - gap * 2,
-            tileSize - gap * 2
-          );
+      const numSquares = 16;
+      const squareSize = CANVAS_RES / numSquares;
+      for (let r = 0; r < numSquares; r++) {
+        for (let c = 0; c < numSquares; c++) {
+          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#121824' : '#0c1017';
+          bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+          bgCtx.lineWidth = 1;
+          bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
         }
+      }
+    }
+    initBackground();
+
+    // Canvas Principal Composto enviado ao Three.js
+    const mainCanvas = document.createElement('canvas');
+    mainCanvas.width = CANVAS_RES;
+    mainCanvas.height = CANVAS_RES;
+    const mainCtx = mainCanvas.getContext('2d');
+
+    const floorTexture = new THREE.CanvasTexture(mainCanvas);
+    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // Desenha uma pincelada fluida e contínua (mancha líquida)
+    function paintFluidStain(agentId, x0, z0, x1, z1) {
+      const p0x = ((x0 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
+      const p0y = ((z0 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
+      const p1x = ((x1 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
+      const p1y = ((z1 + HALF_FLOOR) / FLOOR_SIZE) * CANVAS_RES;
+
+      // Amostragem na matriz lógica
+      const gx = Math.min(GRID_DIM - 1, Math.max(0, Math.floor(((x1 + HALF_FLOOR) / FLOOR_SIZE) * GRID_DIM)));
+      const gy = Math.min(GRID_DIM - 1, Math.max(0, Math.floor(((z1 + HALF_FLOOR) / FLOOR_SIZE) * GRID_DIM)));
+      const gIdx = gy * GRID_DIM + gx;
+
+      const now = performance.now();
+      const currentLevel = levelGrid[gIdx];
+      const prevAgent = lastAgentGrid[gIdx];
+      const prevTime = lastTimeGrid[gIdx];
+
+      let targetLevel = currentLevel;
+
+      // Se for OUTRA pessoa ou a mesma após 2.5s, sobe de cor
+      if (prevAgent !== agentId || (now - prevTime > 2500)) {
+        if (targetLevel < 4) {
+          targetLevel++;
+        }
+        levelGrid[gIdx] = targetLevel;
+        lastAgentGrid[gIdx] = agentId;
+      }
+      lastTimeGrid[gIdx] = now;
+
+      // Seleciona a camada da mancha correspondente
+      let targetCtx;
+      if (targetLevel <= 1) targetCtx = layerGreen.ctx;
+      else if (targetLevel === 2) targetCtx = layerYellow.ctx;
+      else if (targetLevel === 3) targetCtx = layerRed.ctx;
+      else targetCtx = layerPurple.ctx;
+
+      // Pinta o traço fluido vetorial
+      targetCtx.beginPath();
+      targetCtx.moveTo(p0x, p0y);
+      targetCtx.lineTo(p1x, p1y);
+      targetCtx.stroke();
+    }
+
+    function composeFloor() {
+      mainCtx.drawImage(bgCanvas, 0, 0);
+      mainCtx.drawImage(layerGreen.canvas, 0, 0);
+      mainCtx.drawImage(layerYellow.canvas, 0, 0);
+      mainCtx.drawImage(layerRed.canvas, 0, 0);
+      mainCtx.drawImage(layerPurple.canvas, 0, 0);
+
+      // Grade sutil por cima
+      const numSquares = 16;
+      const squareSize = CANVAS_RES / numSquares;
+      mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      mainCtx.lineWidth = 1;
+      for (let i = 0; i <= CANVAS_RES; i += squareSize) {
+        mainCtx.beginPath(); mainCtx.moveTo(i, 0); mainCtx.lineTo(i, CANVAS_RES); mainCtx.stroke();
+        mainCtx.beginPath(); mainCtx.moveTo(0, i); mainCtx.lineTo(CANVAS_RES, i); mainCtx.stroke();
       }
 
       floorTexture.needsUpdate = true;
 
-      const coveragePercent = ((activeCount / TOTAL_TILES) * 100).toFixed(1);
+      // Cálculo de % de área ativada
+      let activeCount = 0;
+      for (let i = 0; i < levelGrid.length; i++) {
+        if (levelGrid[i] > 0) activeCount++;
+      }
+      const coveragePercent = ((activeCount / levelGrid.length) * 100).toFixed(1);
       document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
     }
-    renderTilesToCanvas();
-
-    // Ativa a placa onde a pessoa está pisando
-    function stepOnTile(agentId, wx, wz) {
-      const col = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * GRID_COUNT);
-      const row = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * GRID_COUNT);
-
-      if (col < 0 || col >= GRID_COUNT || row < 0 || row >= GRID_COUNT) return;
-
-      const idx = row * GRID_COUNT + col;
-      const now = performance.now();
-      const prevAgent = tileLastAgent[idx];
-      const prevTime = tileLastTime[idx];
-
-      // Só sobe de nível se for OUTRA pessoa ou a mesma pessoa após 2.5s
-      if (prevAgent !== agentId || (now - prevTime > 2500)) {
-        if (tilePasses[idx] < 4) {
-          tilePasses[idx]++;
-        }
-        tileLastAgent[idx] = agentId;
-      }
-      tileLastTime[idx] = now;
-    }
+    composeFloor();
 
     // ==========================================
     // 5. GEOMETRIA DO PISO
@@ -707,6 +748,9 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
+          const prevX = agent.human.root.position.x;
+          const prevZ = agent.human.root.position.z;
+
           // 1. Movimento
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
@@ -761,8 +805,8 @@
             agent.vz = Math.sin(currentAngle) * agent.speed;
           }
 
-          // 6. Ativação da placa piezoelétrica quadrada atual
-          stepOnTile(agent.id, currX, currZ);
+          // 6. Pinta a mancha fluida contínua
+          paintFluidStain(agent.id, prevX, prevZ, currX, currZ);
 
           // 7. Detecção de passos para telemetria
           const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
@@ -799,7 +843,7 @@
 
       frameCounter++;
       if (frameCounter % 2 === 0 && !isPaused) {
-        renderTilesToCanvas();
+        composeFloor();
       }
 
       renderer.render(scene, camera);
@@ -816,10 +860,14 @@
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {
-      tilePasses.fill(0);
-      tileLastAgent.fill(255);
-      tileLastTime.fill(0);
-      renderTilesToCanvas();
+      layerGreen.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
+      layerYellow.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
+      layerRed.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
+      layerPurple.ctx.clearRect(0, 0, CANVAS_RES, CANVAS_RES);
+      levelGrid.fill(0);
+      lastAgentGrid.fill(255);
+      lastTimeGrid.fill(0);
+      composeFloor();
       totalJoules = 0;
       totalSteps = 0;
       instantaneousWatts = 0;
