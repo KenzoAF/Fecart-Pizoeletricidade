@@ -299,7 +299,8 @@
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       
-      const radius = 14; 
+      // Raio menor (7px) e intensidade reduzida (0.005) para um rastro mais discreto
+      const radius = 7; 
       const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
       const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
 
@@ -308,7 +309,7 @@
           const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
           if (dist2 <= radius ** 2) {
             const falloff = 0.5 * (1 + Math.cos((Math.sqrt(dist2) / radius) * Math.PI));
-            heatMapData[y * HEATMAP_RES + x] += falloff * 0.02; 
+            heatMapData[y * HEATMAP_RES + x] += falloff * 0.005; 
           }
         }
       }
