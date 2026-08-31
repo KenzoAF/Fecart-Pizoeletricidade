@@ -1,5 +1,5 @@
 # ⚡ Projeto Piezoelectricidade - FECART
-👉 **[CLIQUE AQUI PARA ABRIR A SIMULAÇÃO 3D](https://kenzoaf.github.io/Fecart-Piezoeletricidade/)**
+👉 **[CLIQUE AQUI PARA ABRIR A SIMULAÇÃO 3D](https://kenzoaf.github.io/Fecart-Pizoeletricidade/)**
 > ⚠️ **Status do Projeto:** Fase de Aguardo de Componentes & Modelagem Conceitual.
 ---
 ## 📌 Sobre o Projeto
