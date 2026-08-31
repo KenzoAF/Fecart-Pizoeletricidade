@@ -6,13 +6,13 @@
   <title>Simulação de Piso Piezoelétrico | FECART</title>
   
   <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="./Simulação de Piso Piezoelétrico _ FECART_files/css2" rel="stylesheet">
 
   <!-- Bibliotecas Three.js e OrbitControls via CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="./Simulação de Piso Piezoelétrico _ FECART_files/three.min.js.download"></script>
+  <script src="./Simulação de Piso Piezoelétrico _ FECART_files/OrbitControls.js.download"></script>
 
   <style>
     * {
@@ -288,13 +288,13 @@
           <div class="color-swatch swatch-neutral"></div>
           <span class="legend-traffic">Sem Passagens</span>
         </div>
-        <span class="legend-energy">Preto</span>
+        <span class="legend-energy">Frio / Zero</span>
       </div>
 
       <div class="legend-item">
         <div class="legend-color-box">
           <div class="color-swatch swatch-green"></div>
-          <span class="legend-traffic">Baixo Tráfego</span>
+          <span class="legend-traffic">Tráfego Baixo</span>
         </div>
         <span class="legend-energy">Verde</span>
       </div>
@@ -340,7 +340,7 @@
       </div>
       <div class="metric-card">
         <div class="metric-label">Área Ativada</div>
-        <div class="metric-value" id="val-coverage" style="color: #800080;">0.0%</div>
+        <div class="metric-value" id="val-coverage" style="color: #f000ff;">0.0%</div>
       </div>
     </div>
 
@@ -370,10 +370,6 @@
     const NUM_AGENTS = 8;
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
-    const STAMP_RADIUS = 22;
-    
-    // Valor máximo para saturação em Roxo
-    const MAX_HEAT_VAL = 1.0; 
     
     let isPaused = false;
     let totalJoules = 0;
@@ -436,7 +432,7 @@
     });
 
     // ==========================================
-    // 4. MOTOR DO MAPA DE CALOR
+    // 4. ESTRUTURA DO PISO E CANVAS AUXILIAR
     // ==========================================
     const heatMapData = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
@@ -640,56 +636,51 @@
     }
 
     // ==========================================
-    // 7. GRADIENTE DE CORES: PRETO -> VERDE -> AMARELO -> VERMELHO -> ROXO
+    // 7. MOTOR TÉRMICO (AJUSTADO PARA RASTRO FORTE E MULTICOLORIDO)
     // ==========================================
+    // Reduzido para acumular cor rápida e passar do verde -> amarelo -> vermelho -> roxo
+    const MAX_HEAT_VAL = 2.0; 
+
     function getContinuousHeatColor(value) {
       const v = Math.min(1.0, Math.max(0.0, value / MAX_HEAT_VAL));
 
       let r = 0, g = 0, b = 0;
 
-      if (v <= 0) {
-        // Sem tráfego (Preto/Neutro)
-        r = 12; g = 16; b = 24;
-      } else if (v < 0.25) { 
-        // 0 a 0.25: Preto -> Verde Vivo (#00FF66)
-        const t = v / 0.25;
-        r = Math.floor(12 * (1 - t));
-        g = Math.floor(16 * (1 - t) + 255 * t);
-        b = Math.floor(24 * (1 - t) + 102 * t);
-      } else if (v < 0.50) { 
-        // 0.25 a 0.50: Verde (#00FF66) -> Amarelo Vibração (#FFEA00)
-        const t = (v - 0.25) / 0.25;
+      if (v < 0.33) { 
+        // Tráfego Baixo: Verde (#00FF00) -> Amarelo (#FFFF00)
+        const t = v / 0.33;
         r = Math.floor(255 * t);
         g = 255;
-        b = Math.floor(102 * (1 - t));
-      } else if (v < 0.75) { 
-        // 0.50 a 0.75: Amarelo (#FFEA00) -> Vermelho (#FF1E1E)
-        const t = (v - 0.50) / 0.25;
+        b = 0;
+      } else if (v < 0.66) { 
+        // Tráfego Médio: Amarelo (#FFFF00) -> Vermelho (#FF0000)
+        const t = (v - 0.33) / 0.33;
         r = 255;
-        g = Math.floor(255 * (1 - t) + 30 * t);
-        b = Math.floor(30 * t);
+        g = Math.floor(255 * (1 - t));
+        b = 0;
       } else { 
-        // 0.75 a 1.0+: Vermelho (#FF1E1E) -> Roxo Intenso (#800080)
-        const t = Math.min(1.0, (v - 0.75) / 0.25);
-        r = Math.floor(255 * (1 - t) + 128 * t);
-        g = Math.floor(30 * (1 - t));
-        b = Math.floor(30 * (1 - t) + 128 * t);
+        // Tráfego Intenso: Vermelho (#FF0000) -> Roxo (#800080)
+        const t = (v - 0.66) / 0.34;
+        r = Math.floor(255 - (127 * t));
+        g = 0;
+        b = Math.floor(128 * t);
       }
 
       return [r, g, b];
     }
 
-    // Deposita calor no mapa
+    // Aplicação de calor com maior intensidade
     function addHeatAtWorldPos(agentId, wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
 
-      const minX = Math.max(0, cx - STAMP_RADIUS);
-      const maxX = Math.min(HEATMAP_RES - 1, cx + STAMP_RADIUS);
-      const minY = Math.max(0, cy - STAMP_RADIUS);
-      const maxY = Math.min(HEATMAP_RES - 1, cy + STAMP_RADIUS);
+      const radius = 22; 
+      const minX = Math.max(0, cx - radius);
+      const maxX = Math.min(HEATMAP_RES - 1, cx + radius);
+      const minY = Math.max(0, cy - radius);
+      const maxY = Math.min(HEATMAP_RES - 1, cy + radius);
 
-      const r2 = STAMP_RADIUS * STAMP_RADIUS;
+      const r2 = radius * radius;
 
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
@@ -699,11 +690,12 @@
 
           if (dist2 <= r2) {
             const dist = Math.sqrt(dist2);
-            const falloff = 0.5 * (1 + Math.cos((dist / STAMP_RADIUS) * Math.PI));
+            // Dissipação cossenoidal suave
+            const falloff = 0.5 * (1 + Math.cos((dist / radius) * Math.PI));
             const idx = y * HEATMAP_RES + x;
             
-            // Intensidade do rastro aumentada
-            heatMapData[idx] += falloff * 0.08;
+            // Intensidade do acúmulo aumentada de 0.008 para 0.08
+            heatMapData[idx] += falloff * 0.08; 
           }
         }
       }
@@ -718,13 +710,13 @@
       for (let i = 0; i < heatMapData.length; i++) {
         const val = heatMapData[i];
 
-        if (val > 0.005) {
+        if (val > 0.005) { // Sensibilidade melhorada
           activePixels++;
           const col = getContinuousHeatColor(val);
           const pIdx = i * 4;
 
-          // Opacidade e mistura de cor ajustadas para ficarem bem visíveis
-          const alpha = Math.min(0.95, val * 0.7 + 0.3);
+          // Opacidade e força visual bastante aumentadas
+          const alpha = Math.min(0.9, val * 0.5 + 0.3);
 
           data[pIdx]     = Math.round(data[pIdx] * (1 - alpha) + col[0] * alpha);
           data[pIdx + 1] = Math.round(data[pIdx + 1] * (1 - alpha) + col[1] * alpha);
@@ -793,7 +785,7 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // 5. Mudança de direção
+          // 5. Mudança suave de direção
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 90 + Math.random() * 120;
