@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fecart - Piezoeletricidade</title>
+  <title>FECART - Piso Piezoelétrico com IA</title>
   <style>
     /* Reset básico */
     * {
@@ -13,7 +13,7 @@
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #0b0e14;
       color: #ffffff;
       height: 100vh;
@@ -22,7 +22,7 @@
       overflow: hidden;
     }
 
-    /* Barra de Navegação no Topo */
+    /* Barra de Navegação Superior */
     .nav-tabs {
       display: flex;
       gap: 12px;
@@ -54,7 +54,7 @@
       border-color: #388bfd;
     }
 
-    /* Container Principal das Abas */
+    /* Container Principal */
     .tab-container {
       flex: 1;
       position: relative;
@@ -72,28 +72,100 @@
       display: block;
     }
 
-    /* Área da Nova Aba */
-    #nova-aba {
-      padding: 40px;
+    /* Estilização da Aba Projeto Físico */
+    #hardware {
+      padding: 30px;
       background-color: #0d1117;
       overflow-y: auto;
     }
 
-    .card-placeholder {
+    .section-title {
+      font-size: 24px;
+      color: #58a6ff;
+      margin-bottom: 8px;
+    }
+
+    .section-desc {
+      color: #8b949e;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    /* Esquema Visual da Placa */
+    .hardware-diagram {
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 8px;
-      padding: 24px;
-      margin-top: 20px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .diagram-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .layer {
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .layer-surface { background: #238636; color: #fff; }
+    .layer-piezo { background: #8957e5; color: #fff; }
+    .layer-circuit { background: #d29922; color: #000; }
+    .layer-storage { background: #1f6feb; color: #fff; }
+
+    /* Grid de Componentes */
+    .components-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .component-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .component-card h4 {
+      color: #388bfd;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .component-card p {
+      color: #c9d1d9;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tag {
+      background: #21262d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 10px;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
 
-  <!-- Menu Superior de Abas -->
+  <!-- Menu de Navegação -->
   <nav class="nav-tabs">
     <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D</button>
-    <button class="tab-btn" onclick="openTab(event, 'nova-aba')">Nova Funcionalidade</button>
+    <button class="tab-btn" onclick="openTab(event, 'hardware')">Projeto Físico (Hardware)</button>
   </nav>
 
   <!-- Container Geral -->
@@ -101,38 +173,82 @@
     
     <!-- ABA 1: Simulação Atual -->
     <div id="simulacao" class="tab-content active">
-      <!-- COLE O CONTEÚDO DA SUA SIMULAÇÃO AQUI (Canvas, Telemetria, Sidebar, etc) -->
+      <!-- MANTENHA O CÓDIGO DA SUA SIMULAÇÃO 3D AQUI -->
     </div>
 
-    <!-- ABA 2: Nova Funcionalidade -->
-    <div id="nova-aba" class="tab-content">
-      <h1>Nova Área do Projeto</h1>
-      <p>Este espaço está reservado para a nova aba sem interferir no dashboard principal.</p>
-      
-      <div class="card-placeholder">
-        <h3>Painel de Conteúdo</h3>
-        <p>Insira aqui seus gráficos, tabelas, relatórios ou novos dados do piso piezoelétrico.</p>
+    <!-- ABA 2: Projeto Físico / Componentes Reais -->
+    <div id="hardware" class="tab-content">
+      <h2 class="section-title">Arquitetura do Piso Piezoelétrico Real</h2>
+      <p class="section-desc">Estrutura física e componentes elétricos necessários para conversão de energia por mecânica dos passos.</p>
+
+      <!-- Diagrama de Camadas da Placa -->
+      <div class="hardware-diagram">
+        <h3 style="margin-bottom: 15px; color: #c9d1d9;">Camadas da Placa Física</h3>
+        <div class="diagram-layers">
+          <div class="layer layer-surface">1. Superfície de Impacto (Polímero / Borracha Resistente)</div>
+          <div class="layer layer-piezo">2. Matriz de Pastilhas Piezoelétricas (PZT - Titanato Zirconato de Chumbo)</div>
+          <div class="layer layer-circuit">3. Circuito Regulador & Ponte Retificadora (AC para DC)</div>
+          <div class="layer layer-storage">4. Sistema de Acumulação (Supercapacitores / Bateria)</div>
+        </div>
+      </div>
+
+      <!-- Lista Detalhada dos Componentes -->
+      <h3 style="margin-bottom: 15px; color: #c9d1d9;">Componentes do Sistema</h3>
+      <div class="components-grid">
+        
+        <div class="component-card">
+          <h4>Pastilhas Piezoelétricas (PZT)</h4>
+          <p>Discos cerâmicos que convertem a deformação mecânica do passo em tensão elétrica através da polarização interna de cargas.</p>
+          <span class="tag">Geração de Energia</span>
+        </div>
+
+        <div class="component-card">
+          <h4>Ponte Retificadora de Diodos</h4>
+          <p>Converte a corrente alternada (AC) gerada pelas vibrações dos passos em corrente contínua (DC) utilizável.</p>
+          <span class="tag">Tratamento de Sinal</span>
+        </div>
+
+        <div class="component-card">
+          <h4>Módulo Regulador de Tensão</h4>
+          <p>Estabiliza os picos de voltagem gerados pela variação de peso das pessoas para manter uma saída segura.</p>
+          <span class="tag">Proteção do Circuito</span>
+        </div>
+
+        <div class="component-card">
+          <h4>Supercapacitores / Baterias</h4>
+          <p>Armazenam a pequena quantidade de energia gerada em cada passo para fornecimento constante e contínuo.</p>
+          <span class="tag">Armazenamento</span>
+        </div>
+
+        <div class="component-card">
+          <h4>Câmera para Visão Computacional</h4>
+          <p>Captura o fluxo urbano em tempo real para alimentar a Inteligência Artificial e gerar os mapas de calor de tráfego.</p>
+          <span class="tag">Mapeamento por IA</span>
+        </div>
+
+        <div class="component-card">
+          <h4>Dispositivos de Carga (Leds/Sensores)</h4>
+          <p>Aplicações finais de baixa potência alimentadas pela energia acumulada (ex: iluminação LED, displays e sensores).</p>
+          <span class="tag">Consumo Útil</span>
+        </div>
+
       </div>
     </div>
 
   </div>
 
-  <!-- Lógica das Abas -->
+  <!-- Lógica de Alternância entre Abas -->
   <script>
     function openTab(evt, tabName) {
-      // Oculta todas as abas
       const contents = document.querySelectorAll('.tab-content');
       contents.forEach(content => content.classList.remove('active'));
 
-      // Remove destaque dos botões
       const buttons = document.querySelectorAll('.tab-btn');
       buttons.forEach(btn => btn.classList.remove('active'));
 
-      // Ativa a aba e o botão selecionados
       document.getElementById(tabName).classList.add('active');
       evt.currentTarget.classList.add('active');
 
-      // Garante o ajuste de tela da biblioteca 3D ao retornar para a simulação
       if (tabName === 'simulacao') {
         window.dispatchEvent(new Event('resize'));
       }
