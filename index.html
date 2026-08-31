@@ -216,7 +216,7 @@
 
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação com Bonecos e Rastros com Cores Correspondentes -->
+    <!-- ABA 1: Simulação com Bonecos e Rastros Coloridos -->
     <div id="simulacao" class="tab-content active">
       <div class="sim-layout">
         <div class="sidebar">
@@ -239,15 +239,15 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div class="card-metric">
               <span>Energia Acumulada</span>
-              <h3 id="energia-val">1296.0 J</h3>
+              <h3 id="energia-val">1440.0 J</h3>
             </div>
             <div class="card-metric">
               <span>Potência Inst.</span>
-              <h3 id="potencia-val">49.4 W</h3>
+              <h3 id="potencia-val">45.4 W</h3>
             </div>
             <div class="card-metric">
               <span>Passadas</span>
-              <h3 id="passadas-val">270</h3>
+              <h3 id="passadas-val">306</h3>
             </div>
             <div class="card-metric">
               <span>Área Ativada</span>
@@ -312,8 +312,8 @@
       }
     }
 
-    let contadorPassadas = 270;
-    let energiaAcumulada = 1296.0;
+    let contadorPassadas = 306;
+    let energiaAcumulada = 1440.0;
 
     function reiniciarSimulacao() {
       contadorPassadas = 0;
@@ -324,7 +324,7 @@
       document.getElementById('area-val').innerText = '0.0%';
     }
 
-    // --- Simulação 3D com Bonecos e Rastros Multicor correspondentes ---
+    // --- Simulação 3D com Bonequinhos e Rastros Multicor ---
     function initMapSimulation() {
       const container = document.getElementById('canvas-container-map');
       const scene = new THREE.Scene();
@@ -345,7 +345,7 @@
       light.position.set(10, 20, 10);
       scene.add(light);
 
-      // Grid do Piso (Limpo idêntico ao seu modelo anterior)
+      // Grid do Piso
       const gridGeo = new THREE.PlaneGeometry(14, 14, 25, 25);
       const gridMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, wireframe: true });
       const gridMesh = new THREE.Mesh(gridGeo, gridMat);
@@ -355,7 +355,7 @@
       const simulationGroup = new THREE.Group();
       scene.add(simulationGroup);
 
-      // Cores da escala térmica exatas: Verde, Amarelo, Vermelho, Roxo
+      // Cores exatas da escala térmica para os bonecos e rastros
       const trafficColors = [0x22c55e, 0xeab308, 0xef4444, 0xa855f7]; 
       const agents = [];
 
@@ -370,7 +370,7 @@
           mesh: null
         };
 
-        // Bonequinho indicador da pessoa com a cor térmica
+        // Bonequinho indicador da pessoa
         const personGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.9, 8);
         const personMat = new THREE.MeshBasicMaterial({ color: color });
         const personMesh = new THREE.Mesh(personGeo, personMat);
@@ -392,9 +392,10 @@
           if (agent.x > 6 || agent.x < -6) agent.vx *= -1;
           if (agent.z > 6 || agent.z < -6) agent.vz *= -1;
 
+          // Atualiza a posição do bonequinho
           agent.mesh.position.set(agent.x, 0.45, agent.z);
 
-          // Cada boneco agora deixa o rastro exatamente com a SUA PRÓPRIA COR
+          // O boneco deixa o rastro da cor correspondente
           if (Math.random() < 0.4) {
             const trailGeo = new THREE.BoxGeometry(0.35, 0.06, 0.35);
             const trailMat = new THREE.MeshBasicMaterial({ color: agent.color });
