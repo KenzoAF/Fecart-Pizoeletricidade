@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FECART - Piso Piezoelétrico com IA</title>
   <style>
-    /* Reset básico */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -22,7 +21,7 @@
       overflow: hidden;
     }
 
-    /* Barra de Navegação Superior */
+    /* Menu de Navegação Superior */
     .nav-tabs {
       display: flex;
       gap: 12px;
@@ -54,7 +53,7 @@
       border-color: #388bfd;
     }
 
-    /* Container Principal */
+    /* Strutura de Abas */
     .tab-container {
       flex: 1;
       position: relative;
@@ -72,173 +71,104 @@
       display: block;
     }
 
-    /* Estilização da Aba Projeto Físico */
+    /* Layout da Segunda Aba (Modelo 3D) */
     #hardware {
-      padding: 30px;
+      display: flex;
+      width: 100%;
+      height: 100%;
       background-color: #0d1117;
+    }
+
+    #canvas-container-3d {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    .hardware-info-panel {
+      width: 320px;
+      background: #161b22;
+      border-left: 1px solid #30363d;
+      padding: 20px;
       overflow-y: auto;
     }
 
-    .section-title {
-      font-size: 24px;
-      color: #58a6ff;
-      margin-bottom: 8px;
-    }
-
-    .section-desc {
-      color: #8b949e;
-      margin-bottom: 24px;
-      font-size: 14px;
-    }
-
-    /* Esquema Visual da Placa */
-    .hardware-diagram {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-
-    .diagram-layers {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .layer {
-      padding: 15px;
-      border-radius: 6px;
-      text-align: center;
-      font-weight: bold;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .layer-surface { background: #238636; color: #fff; }
-    .layer-piezo { background: #8957e5; color: #fff; }
-    .layer-circuit { background: #d29922; color: #000; }
-    .layer-storage { background: #1f6feb; color: #fff; }
-
-    /* Grid de Componentes */
-    .components-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .component-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
-    }
-
-    .component-card h4 {
-      color: #388bfd;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .component-card p {
-      color: #c9d1d9;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .tag {
+    .info-card {
       background: #21262d;
-      color: #8b949e;
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-top: 10px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .info-card h4 {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .color-dot {
       display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
     }
   </style>
+  
+  <!-- Carregamento do Three.js e OrbitControls para visualização 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-  <!-- Menu de Navegação -->
+  <!-- Navegação -->
   <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D</button>
-    <button class="tab-btn" onclick="openTab(event, 'hardware')">Projeto Físico (Hardware)</button>
+    <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D (Mapa de Calor)</button>
+    <button class="tab-btn" onclick="openTab(event, 'hardware')">Modelo 3D do Projeto Físico</button>
   </nav>
 
-  <!-- Container Geral -->
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação Atual -->
+    <!-- ABA 1: Simulação Atual do Mapa de Calor -->
     <div id="simulacao" class="tab-content active">
-      <!-- MANTENHA O CÓDIGO DA SUA SIMULAÇÃO 3D AQUI -->
+      <!-- COLE AQUI O HTML ORIGINAL COMPLETO DO SEU MAPA DE CALOR -->
     </div>
 
-    <!-- ABA 2: Projeto Físico / Componentes Reais -->
+    <!-- ABA 2: Modelo 3D Físico Desmontado -->
     <div id="hardware" class="tab-content">
-      <h2 class="section-title">Arquitetura do Piso Piezoelétrico Real</h2>
-      <p class="section-desc">Estrutura física e componentes elétricos necessários para conversão de energia por mecânica dos passos.</p>
-
-      <!-- Diagrama de Camadas da Placa -->
-      <div class="hardware-diagram">
-        <h3 style="margin-bottom: 15px; color: #c9d1d9;">Camadas da Placa Física</h3>
-        <div class="diagram-layers">
-          <div class="layer layer-surface">1. Superfície de Impacto (Polímero / Borracha Resistente)</div>
-          <div class="layer layer-piezo">2. Matriz de Pastilhas Piezoelétricas (PZT - Titanato Zirconato de Chumbo)</div>
-          <div class="layer layer-circuit">3. Circuito Regulador & Ponte Retificadora (AC para DC)</div>
-          <div class="layer layer-storage">4. Sistema de Acumulação (Supercapacitores / Bateria)</div>
-        </div>
-      </div>
-
-      <!-- Lista Detalhada dos Componentes -->
-      <h3 style="margin-bottom: 15px; color: #c9d1d9;">Componentes do Sistema</h3>
-      <div class="components-grid">
+      <div id="canvas-container-3d"></div>
+      
+      <div class="hardware-info-panel">
+        <h3 style="color: #58a6ff; margin-bottom: 15px;">Componentes da Placa</h3>
         
-        <div class="component-card">
-          <h4>Pastilhas Piezoelétricas (PZT)</h4>
-          <p>Discos cerâmicos que convertem a deformação mecânica do passo em tensão elétrica através da polarização interna de cargas.</p>
-          <span class="tag">Geração de Energia</span>
+        <div class="info-card">
+          <h4><span class="color-dot" style="background: #238636;"></span>Superfície de Impacto</h4>
+          <p style="font-size: 12px; color: #8b949e;">Placa protetora que recebe a pressão direta dos passos[cite: 2].</p>
         </div>
 
-        <div class="component-card">
-          <h4>Ponte Retificadora de Diodos</h4>
-          <p>Converte a corrente alternada (AC) gerada pelas vibrações dos passos em corrente contínua (DC) utilizável.</p>
-          <span class="tag">Tratamento de Sinal</span>
+        <div class="info-card">
+          <h4><span class="color-dot" style="background: #8957e5;"></span>Pastilhas Piezoelétricas (PZT)</h4>
+          <p style="font-size: 12px; color: #8b949e;">Matriz de cristais que convertem deformação mecânica em tensão elétrica[cite: 2].</p>
         </div>
 
-        <div class="component-card">
-          <h4>Módulo Regulador de Tensão</h4>
-          <p>Estabiliza os picos de voltagem gerados pela variação de peso das pessoas para manter uma saída segura.</p>
-          <span class="tag">Proteção do Circuito</span>
+        <div class="info-card">
+          <h4><span class="color-dot" style="background: #d29922;"></span>Ponte Retificadora / Circuito</h4>
+          <p style="font-size: 12px; color: #8b949e;">Converte corrente alternada (AC) em contínua (DC) e regula a voltagem[cite: 2].</p>
         </div>
 
-        <div class="component-card">
-          <h4>Supercapacitores / Baterias</h4>
-          <p>Armazenam a pequena quantidade de energia gerada em cada passo para fornecimento constante e contínuo.</p>
-          <span class="tag">Armazenamento</span>
+        <div class="info-card">
+          <h4><span class="color-dot" style="background: #1f6feb;"></span>Bateria / Supercapacitor</h4>
+          <p style="font-size: 12px; color: #8b949e;">Armazena a energia acumulada pelas passadas[cite: 2].</p>
         </div>
-
-        <div class="component-card">
-          <h4>Câmera para Visão Computacional</h4>
-          <p>Captura o fluxo urbano em tempo real para alimentar a Inteligência Artificial e gerar os mapas de calor de tráfego.</p>
-          <span class="tag">Mapeamento por IA</span>
-        </div>
-
-        <div class="component-card">
-          <h4>Dispositivos de Carga (Leds/Sensores)</h4>
-          <p>Aplicações finais de baixa potência alimentadas pela energia acumulada (ex: iluminação LED, displays e sensores).</p>
-          <span class="tag">Consumo Útil</span>
-        </div>
-
       </div>
     </div>
 
   </div>
 
-  <!-- Lógica de Alternância entre Abas -->
   <script>
+    // Gerenciamento das Abas
+    let hardware3DInitialized = false;
+
     function openTab(evt, tabName) {
       const contents = document.querySelectorAll('.tab-content');
       contents.forEach(content => content.classList.remove('active'));
@@ -251,9 +181,94 @@
 
       if (tabName === 'simulacao') {
         window.dispatchEvent(new Event('resize'));
+      } else if (tabName === 'hardware' && !hardware3DInitialized) {
+        initHardware3D();
+        hardware3DInitialized = true;
       }
     }
-  </script>
 
+    // Renderização do Modelo 3D da Placa Física na Segunda Aba
+    function initHardware3D() {
+      const container = document.getElementById('canvas-container-3d');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0d1117);
+
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(10, 10, 15);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      // Iluminação
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(10, 20, 10);
+      scene.add(dirLight);
+
+      // Grupo do Modelo
+      const plateGroup = new THREE.Group();
+
+      // Camada 1: Superfície de Impacto (Verde)
+      const topGeo = new THREE.BoxGeometry(6, 0.2, 6);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0x238636, transparent: true, opacity: 0.85 });
+      const topMesh = new THREE.Mesh(topGeo, topMat);
+      topMesh.position.y = 2;
+      plateGroup.add(topMesh);
+
+      // Camada 2: Pastilhas Piezoelétricas (Roxas)
+      const piezoGroup = new THREE.Group();
+      piezoGroup.position.y = 0.8;
+      const piezoGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 32);
+      const piezoMat = new THREE.MeshStandardMaterial({ color: 0x8957e5 });
+
+      for (let x = -2; x <= 2; x += 1.3) {
+        for (let z = -2; z <= 2; z += 1.3) {
+          const piezo = new THREE.Mesh(piezoGeo, piezoMat);
+          piezo.position.set(x, 0, z);
+          piezoGroup.add(piezo);
+        }
+      }
+      plateGroup.add(piezoGroup);
+
+      // Camada 3: Placa de Circuito (Amarela)
+      const circuitGeo = new THREE.BoxGeometry(5.8, 0.1, 5.8);
+      const circuitMat = new THREE.MeshStandardMaterial({ color: 0xd29922 });
+      const circuitMesh = new THREE.Mesh(circuitGeo, circuitMat);
+      circuitMesh.position.y = -0.3;
+      plateGroup.add(circuitMesh);
+
+      // Camada 4: Módulo de Bateria / Armazenamento (Azul)
+      const batGeo = new THREE.BoxGeometry(2, 0.4, 3);
+      const batMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb });
+      const batMesh = new THREE.Mesh(batGeo, batMat);
+      batMesh.position.y = -1.2;
+      plateGroup.add(batMesh);
+
+      scene.add(plateGroup);
+
+      // Animação de Renderização
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        plateGroup.rotation.y += 0.003;
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Redimensionamento
+      window.addEventListener('resize', () => {
+        if (container.clientWidth > 0) {
+          camera.aspect = container.clientWidth / container.clientHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+      });
+    }
+  </script>
 </body>
 </html>
