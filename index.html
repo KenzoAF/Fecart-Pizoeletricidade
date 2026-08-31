@@ -6,13 +6,13 @@
   <title>Simulação de Piso Piezoelétrico | FECART</title>
   
   <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com/">
-  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-  <link href="./Simulação de Piso Piezoelétrico _ FECART_files/css2" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
-  <!-- Bibliotecas Three.js e OrbitControls via CDN -->
-  <script src="./Simulação de Piso Piezoelétrico _ FECART_files/three.min.js.download"></script>
-  <script src="./Simulação de Piso Piezoelétrico _ FECART_files/OrbitControls.js.download"></script>
+  <!-- Bibliotecas Three.js via CDN Pública (Corrigido para GitHub Pages) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <style>
     * {
@@ -40,7 +40,6 @@
       z-index: 1;
     }
 
-    /* Painel HUD / Interface Superior */
     .hud-panel {
       position: absolute;
       top: 20px;
@@ -105,7 +104,6 @@
       margin-bottom: 16px;
     }
 
-    /* Legenda do Mapa de Calor */
     .section-title {
       font-size: 11px;
       font-weight: 700;
@@ -162,7 +160,6 @@
       font-family: 'Orbitron', monospace;
     }
 
-    /* Métricas / Telemetria */
     .metrics-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -192,7 +189,6 @@
       color: #38bdf8;
     }
 
-    /* Controles */
     .controls-row {
       display: flex;
       gap: 8px;
@@ -230,7 +226,6 @@
       background: #0369a1;
     }
 
-    /* Dica de Navegação */
     .hint-bar {
       position: absolute;
       bottom: 20px;
@@ -269,7 +264,6 @@
 
   <div id="canvas-container"></div>
 
-  <!-- Painel HUD / Telemetria -->
   <div class="hud-panel">
     <div class="badge">
       <span class="badge-dot"></span>
@@ -354,7 +348,6 @@
     </div>
   </div>
 
-  <!-- Barra de Dicas de Câmera -->
   <div class="hint-bar">
     <span><span class="hint-key">Botão Esquerdo</span> Rotacionar</span>
     <span><span class="hint-key">Scroll</span> Zoom</span>
@@ -362,9 +355,6 @@
   </div>
 
   <script>
-    // ==========================================
-    // 1. CONFIGURAÇÕES PRINCIPAIS
-    // ==========================================
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 8;
@@ -376,9 +366,6 @@
     let totalSteps = 0;
     let instantaneousWatts = 0;
 
-    // ==========================================
-    // 2. CONFIGURAÇÃO DA CENA THREE.JS
-    // ==========================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x08090d);
@@ -402,9 +389,6 @@
     controls.maxDistance = 100;
     controls.target.set(0, 0, 0);
 
-    // ==========================================
-    // 3. ILUMINAÇÃO
-    // ==========================================
     const ambientLight = new THREE.AmbientLight(0x38455e, 1.4);
     scene.add(ambientLight);
 
@@ -431,9 +415,6 @@
       scene.add(pLight);
     });
 
-    // ==========================================
-    // 4. ESTRUTURA DO PISO E CANVAS AUXILIAR
-    // ==========================================
     const heatMapData = new Float32Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
@@ -469,9 +450,6 @@
     const floorTexture = new THREE.CanvasTexture(outputCanvas);
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    // ==========================================
-    // 5. GEOMETRIA DO PISO
-    // ==========================================
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshBasicMaterial({ map: floorTexture });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
@@ -488,9 +466,6 @@
     outerGrid.position.y = -0.32;
     scene.add(outerGrid);
 
-    // ==========================================
-    // 6. MODELOS DE PESSOAS 3D (AVATARES HUMANOS)
-    // ==========================================
     const humanPalettes = [
       { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a, hair: 0x1e1b4b },
       { shirt: 0xdc2626, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x451a03 },
@@ -511,7 +486,6 @@
       const shoesMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.4 });
       const hairMat = new THREE.MeshStandardMaterial({ color: palette.hair, roughness: 0.8 });
 
-      // Tronco
       const torsoGeo = new THREE.BoxGeometry(0.7, 0.85, 0.45);
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
       torsoMesh.position.y = 1.4;
@@ -519,21 +493,18 @@
       torsoMesh.receiveShadow = true;
       humanGroup.add(torsoMesh);
 
-      // Cabeça
       const headGeo = new THREE.SphereGeometry(0.24, 16, 16);
       const headMesh = new THREE.Mesh(headGeo, skinMat);
       headMesh.position.y = 2.05;
       headMesh.castShadow = true;
       humanGroup.add(headMesh);
 
-      // Cabelo
       const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
       const hairMesh = new THREE.Mesh(hairGeo, hairMat);
       hairMesh.position.y = 2.08;
       hairMesh.castShadow = true;
       humanGroup.add(hairMesh);
 
-      // Braço Esquerdo
       const leftArmPivot = new THREE.Group();
       leftArmPivot.position.set(-0.46, 1.75, 0);
       const armGeo = new THREE.BoxGeometry(0.2, 0.75, 0.2);
@@ -548,7 +519,6 @@
       leftArmPivot.add(leftHandMesh);
       humanGroup.add(leftArmPivot);
 
-      // Braço Direito
       const rightArmPivot = new THREE.Group();
       rightArmPivot.position.set(0.46, 1.75, 0);
       const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
@@ -561,7 +531,6 @@
       rightArmPivot.add(rightHandMesh);
       humanGroup.add(rightArmPivot);
 
-      // Perna Esquerda
       const leftLegPivot = new THREE.Group();
       leftLegPivot.position.set(-0.2, 0.95, 0);
       const legGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
@@ -578,7 +547,6 @@
       leftLegPivot.add(leftShoeMesh);
       humanGroup.add(leftLegPivot);
 
-      // Perna Direita
       const rightLegPivot = new THREE.Group();
       rightLegPivot.position.set(0.2, 0.95, 0);
       const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
@@ -635,10 +603,6 @@
       });
     }
 
-    // ==========================================
-    // 7. MOTOR TÉRMICO ULTRA SENSÍVEL E MULTICOR
-    // ==========================================
-    // MAX_HEAT_VAL reduzido para atingir rapidamente as cores mais quentes
     const MAX_HEAT_VAL = 0.4; 
 
     function getContinuousHeatColor(value) {
@@ -647,25 +611,21 @@
       let r = 0, g = 0, b = 0;
 
       if (v < 0.2) { 
-        // Verde puro -> Verde Amarelado
         const t = v / 0.2;
         r = Math.floor(100 * t);
         g = 255;
         b = 0;
       } else if (v < 0.45) { 
-        // Amarelo Vivo
         const t = (v - 0.2) / 0.25;
         r = 255;
         g = Math.floor(255 - (30 * t));
         b = 0;
       } else if (v < 0.75) { 
-        // Vermelho Intenso
         const t = (v - 0.45) / 0.3;
         r = 255;
         g = Math.floor(225 * (1 - t));
         b = 0;
       } else { 
-        // Roxo Profundo
         const t = (v - 0.75) / 0.25;
         r = Math.floor(255 - (110 * t));
         g = 0;
@@ -697,15 +657,12 @@
             const dist = Math.sqrt(dist2);
             const falloff = 0.5 * (1 + Math.cos((dist / radius) * Math.PI));
             const idx = y * HEATMAP_RES + x;
-            
-            // Incremento direto de calor por frame massivamente aumentado
             heatMapData[idx] += falloff * 0.8; 
           }
         }
       }
     }
 
-    let frameCounter = 0;
     function updateHeatmapTexture() {
       const bgImgData = bgCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
       const data = bgImgData.data;
@@ -719,7 +676,6 @@
           const col = getContinuousHeatColor(val);
           const pIdx = i * 4;
 
-          // Sobregravação direta do canal de cor para garantir visibilidade máxima
           data[pIdx]     = col[0];
           data[pIdx + 1] = col[1];
           data[pIdx + 2] = col[2];
@@ -733,9 +689,6 @@
       document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
     }
 
-    // ==========================================
-    // 8. FÍSICA E MOVIMENTO DOS HUMANOS
-    // ==========================================
     const boundLimit = HALF_FLOOR - 1.8;
 
     function updateAgents() {
@@ -743,14 +696,12 @@
 
       pedestrians.forEach((agent) => {
         if (!isPaused) {
-          // 1. Movimento
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
 
           const currX = agent.human.root.position.x;
           const currZ = agent.human.root.position.z;
 
-          // 2. Animação de caminhada
           agent.walkCycle += agent.speed * 2.8;
           const legSwing = Math.sin(agent.walkCycle) * 0.65;
           const armSwing = Math.sin(agent.walkCycle) * 0.55;
@@ -763,14 +714,12 @@
           agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
           agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
 
-          // 3. Rotação na direção do movimento
           const targetAngle = Math.atan2(agent.vx, agent.vz);
           let diff = targetAngle - agent.human.root.rotation.y;
           while (diff < -Math.PI) diff += Math.PI * 2;
           while (diff > Math.PI) diff -= Math.PI * 2;
           agent.human.root.rotation.y += diff * 0.1;
 
-          // 4. Rebatimento nas bordas do piso
           if (agent.human.root.position.x > boundLimit) { 
             agent.human.root.position.x = boundLimit; 
             agent.vx = -Math.abs(agent.vx); 
@@ -787,7 +736,6 @@
             agent.vz = Math.abs(agent.vz); 
           }
 
-          // 5. Mudança suave de direção
           agent.turnTimer--;
           if (agent.turnTimer <= 0) {
             agent.turnTimer = 90 + Math.random() * 120;
@@ -798,10 +746,8 @@
             agent.vz = Math.sin(blendedAngle) * agent.speed;
           }
 
-          // 6. Deposita o rastro térmico fluido
           addHeatAtWorldPos(agent.id, currX, currZ);
 
-          // 7. Detecção de passos para telemetria
           const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
           if (distSinceLastStep > 1.2) {
             agent.lastStepX = currX;
@@ -824,9 +770,6 @@
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
     }
 
-    // ==========================================
-    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
-    // ==========================================
     function animate() {
       requestAnimationFrame(animate);
 
@@ -841,9 +784,6 @@
     }
     animate();
 
-    // ==========================================
-    // 10. INTERAÇÃO E EVENTOS
-    // ==========================================
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
