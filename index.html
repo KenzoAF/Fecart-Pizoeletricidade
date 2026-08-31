@@ -216,7 +216,7 @@
 
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação com Mapa de Calor Original e Rastros de Pessoas -->
+    <!-- ABA 1: Simulação com Mapa de Calor Original Limpo -->
     <div id="simulacao" class="tab-content active">
       <div class="sim-layout">
         <div class="sidebar">
@@ -273,22 +273,22 @@
         <div class="explain-grid">
           <div class="explain-card" onclick="alert('Superfície de Impacto: Camada superior em polímero resistente que recebe diretamente o peso e o atrito dos passos.')">
             <h3>1. Superfície de Impacto</h3>
-            <p>Placa protetora que recebe a pressão direta dos passos[cite: 2] e distribui a força.</p>
+            <p>Placa protetora que recebe a pressão direta dos passos e distribui a força.</p>
           </div>
 
           <div class="explain-card" onclick="alert('Pastilhas PZT: O coração do sistema. Cristais que convertem deformação mecânica em tensão elétrica.')">
             <h3>2. Pastilhas Piezoelétricas (PZT)</h3>
-            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica[cite: 2].</p>
+            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica.</p>
           </div>
 
           <div class="explain-card" onclick="alert('Ponte Retificadora: Converte a corrente alternada (AC) gerada pelos cristais em corrente contínua (DC) estável.')">
             <h3>3. Ponte Retificadora / Circuito</h3>
-            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem[cite: 2].</p>
+            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem.</p>
           </div>
 
           <div class="explain-card" onclick="alert('Supercapacitores/Bateria: Armazenam de forma eficiente a energia capturada para uso posterior.')">
             <h3>4. Bateria / Supercapacitor</h3>
-            <p>Armazena a energia acumulada pelas passadas[cite: 2] diárias.</p>
+            <p>Armazena a energia acumulada pelas passadas diárias.</p>
           </div>
         </div>
       </div>
@@ -323,7 +323,7 @@
       document.getElementById('passadas-val').innerText = '0';
     }
 
-    // --- Inicialização do Mapa de Calor com Cores Térmicas e Rastros ---
+    // --- Inicialização do Mapa de Calor Original e Limpo ---
     function initMapSimulation() {
       const container = document.getElementById('canvas-container-map');
       const scene = new THREE.Scene();
@@ -344,23 +344,15 @@
       light.position.set(10, 20, 10);
       scene.add(light);
 
-      // Grid Base do Piso
-      const gridGeo = new THREE.PlaneGeometry(14, 14, 30, 30);
-      const gridMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, wireframe: true });
-      const gridMesh = new THREE.Mesh(gridGeo, gridMat);
-      gridMesh.rotation.x = -Math.PI / 2;
-      scene.add(gridMesh);
-
-      // Malha do Mapa de Calor com Gradiente de Cores Térmicas (Vertex Colors)
-      const heatGeo = new THREE.PlaneGeometry(13.8, 13.8, 45, 45);
+      // Malha do Mapa de Calor (Com cores dinâmicas e sem wireframe feio por cima)
+      const heatGeo = new THREE.PlaneGeometry(13.8, 13.8, 50, 50);
       const count = heatGeo.attributes.position.count;
       const colors = new Float32Array(count * 3);
 
       for (let i = 0; i < count; i++) {
-        // Cores iniciais frias/médias (Verde/Amarelo)
-        colors[i * 3] = 0.1;     // R
-        colors[i * 3 + 1] = 0.8; // G
-        colors[i * 3 + 2] = 0.3; // B
+        colors[i * 3] = 0.1;     
+        colors[i * 3 + 1] = 0.8; 
+        colors[i * 3 + 2] = 0.3; 
       }
       heatGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
@@ -368,7 +360,7 @@
         vertexColors: true,
         roughness: 0.2,
         metalness: 0.1,
-        wireframe: false
+        wireframe: false // Removido o wireframe para deixar limpo igual ao original
       });
 
       const heatMesh = new THREE.Mesh(heatGeo, heatMat);
@@ -376,7 +368,6 @@
       heatMesh.position.y = 0.05;
       scene.add(heatMesh);
 
-      // Pontos simulando passos móveis (Pessoas caminhando e deixando rastros)
       const walkers = [
         { x: -3, z: -3, vx: 0.04, vz: 0.03 },
         { x: 3, z: 2, vx: -0.03, vz: 0.05 },
@@ -391,7 +382,6 @@
         const colorAttr = heatGeo.attributes.color;
         const time = Date.now() * 0.002;
 
-        // Movimenta os "andadores" para criar rastros dinâmicos no mapa
         walkers.forEach(w => {
           w.x += w.vx;
           w.z += w.vz;
@@ -403,10 +393,8 @@
           const u = position.getX(i);
           const v = position.getY(i);
 
-          // Efeito de onda térmica baseada na posição
           let wave = Math.sin(u * 0.8 + time) * Math.cos(v * 0.8 + time);
           
-          // Influência dos passos das pessoas nos rastros
           walkers.forEach(w => {
             const dist = Math.sqrt((u - w.x) ** 2 + (v - w.z) ** 2);
             if (dist < 2.5) {
@@ -416,11 +404,10 @@
 
           position.setZ(i, wave * 0.4);
 
-          // Dinâmica de cores térmicas (Verde -> Amarelo -> Vermelho -> Roxo)
-          let r = 0.1, g = 0.7, b = 0.3; // Verde padrão
-          if (wave > 0.6) { // Vermelho/Roxo em pontos de pico
+          let r = 0.1, g = 0.7, b = 0.3; 
+          if (wave > 0.6) { 
             r = 0.9; g = 0.1; b = 0.8;
-          } else if (wave > 0.3) { // Amarelo/Laranja
+          } else if (wave > 0.3) { 
             r = 0.9; g = 0.8; b = 0.1;
           }
 
