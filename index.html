@@ -191,20 +191,20 @@
       const pantsMat = new THREE.MeshStandardMaterial({ color: palette.pants, roughness: 0.5 });
       const shoeMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.3 });
 
-      // Torso anatomicamente trabalhado
+      // Torso
       const torsoGeo = new THREE.CylinderGeometry(0.38, 0.28, 0.85, 12);
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
       torsoMesh.position.y = 1.35;
       torsoMesh.castShadow = true;
       humanGroup.add(torsoMesh);
 
-      // Cabeça com pescoço
+      // Cabeça
       const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
       headMesh.position.y = 2.0;
       headMesh.castShadow = true;
       humanGroup.add(headMesh);
 
-      // Pernas com articulação
+      // Pernas
       const legGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.85, 10);
       const shoeGeo = new THREE.BoxGeometry(0.16, 0.12, 0.32);
 
@@ -230,7 +230,7 @@
       rightLegPivot.add(rightLegMesh, rightShoe);
       humanGroup.add(rightLegPivot);
 
-      // Braços animados
+      // Braços
       const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.75, 10);
       const leftArmPivot = new THREE.Group();
       leftArmPivot.position.set(-0.42, 1.65, 0);
@@ -251,6 +251,12 @@
       return { root: humanGroup, leftLeg: leftLegPivot, rightLeg: rightLegPivot, leftArm: leftArmPivot, rightArm: rightArmPivot };
     }
 
+    function updateHumanRotation(agent) {
+      // Ajusta a rotação para virar na direção do movimento (vx, vz)
+      const targetAngle = Math.atan2(agent.vx, agent.vz);
+      agent.human.root.rotation.y = targetAngle;
+    }
+
     const pedestrians = [];
     for (let i = 0; i < NUM_AGENTS; i++) {
       const palette = humanPalettes[i % humanPalettes.length];
@@ -261,13 +267,13 @@
 
       const speed = 0.07 + Math.random() * 0.04;
       const angle = Math.random() * Math.PI * 2;
-      const vx = Math.cos(angle) * speed;
-      const vz = Math.sin(angle) * speed;
-
-      human.root.rotation.y = Math.atan2(-vz, vx) + Math.PI / 2;
+      const vx = Math.sin(angle) * speed;
+      const vz = Math.cos(angle) * speed;
 
       scene.add(human.root);
-      pedestrians.push({ id: i, human: human, vx: vx, vz: vz, speed: speed, walkCycle: Math.random() * Math.PI * 2, lastStepX: x, lastStepZ: z });
+      const agent = { id: i, human: human, vx: vx, vz: vz, speed: speed, walkCycle: Math.random() * Math.PI * 2, lastStepX: x, lastStepZ: z };
+      updateHumanRotation(agent);
+      pedestrians.push(agent);
     }
 
     // Escala estrita: Verde (início) -> Amarelo -> Vermelho -> Roxo
@@ -276,24 +282,20 @@
       let r = 0, g = 0, b = 0;
 
       if (v < 0.25) {
-        // Verde puro no início (Tráfego Baixo)
         r = 0;
         g = 255;
         b = 102;
       } else if (v < 0.50) {
-        // Verde -> Amarelo
         const t = (v - 0.25) / 0.25;
         r = Math.floor(255 * t);
         g = 255;
         b = Math.floor(102 * (1 - t));
       } else if (v < 0.75) {
-        // Amarelo -> Vermelho
         const t = (v - 0.50) / 0.25;
         r = 255;
         g = Math.floor(255 * (1 - t));
         b = 0;
       } else {
-        // Vermelho -> Roxo
         const t = (v - 0.75) / 0.25;
         r = Math.floor(255 - (127 * t));
         g = 0;
@@ -359,13 +361,18 @@
           agent.human.leftArm.rotation.x = -Math.sin(agent.walkCycle) * 0.5;
           agent.human.rightArm.rotation.x = Math.sin(agent.walkCycle) * 0.5;
 
+          let bounced = false;
           if (Math.abs(currX) > HALF_FLOOR - 1.8) {
             agent.vx *= -1;
-            agent.human.root.rotation.y = Math.atan2(-agent.vz, agent.vx) + Math.PI / 2;
+            bounced = true;
           }
           if (Math.abs(currZ) > HALF_FLOOR - 1.8) {
             agent.vz *= -1;
-            agent.human.root.rotation.y = Math.atan2(-agent.vz, agent.vx) + Math.PI / 2;
+            bounced = true;
+          }
+
+          if (bounced) {
+            updateHumanRotation(agent);
           }
 
           addHeatAtWorldPos(currX, currZ);
