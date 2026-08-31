@@ -216,7 +216,7 @@
 
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação Original com Progressão Multicor nos Rastros -->
+    <!-- ABA 1: Simulação Original com Rastros Térmicos e Sem Bonecos -->
     <div id="simulacao" class="tab-content active">
       <div class="sim-layout">
         <div class="sidebar">
@@ -239,19 +239,19 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div class="card-metric">
               <span>Energia Acumulada</span>
-              <h3 id="energia-val">1296.0 J</h3>
+              <h3 id="energia-val">120.0 J</h3>
             </div>
             <div class="card-metric">
               <span>Potência Inst.</span>
-              <h3 id="potencia-val">49.4 W</h3>
+              <h3 id="potencia-val">45.0 W</h3>
             </div>
             <div class="card-metric">
               <span>Passadas</span>
-              <h3 id="passadas-val">270</h3>
+              <h3 id="passadas-val">50</h3>
             </div>
             <div class="card-metric">
               <span>Área Ativada</span>
-              <h3 id="area-val">20.5%</h3>
+              <h3 id="area-val">15.2%</h3>
             </div>
           </div>
 
@@ -312,8 +312,8 @@
       }
     }
 
-    let contadorPassadas = 270;
-    let energiaAcumulada = 1296.0;
+    let contadorPassadas = 50;
+    let energiaAcumulada = 120.0;
 
     function reiniciarSimulacao() {
       contadorPassadas = 0;
@@ -324,7 +324,7 @@
       document.getElementById('area-val').innerText = '0.0%';
     }
 
-    // --- Simulação 3D com Progressão de Cores nos Rastros ---
+    // --- Simulação 3D com Rastros Térmicos (Sem Bonecos) ---
     function initMapSimulation() {
       const container = document.getElementById('canvas-container-map');
       const scene = new THREE.Scene();
@@ -352,39 +352,16 @@
       gridMesh.rotation.x = -Math.PI / 2;
       scene.add(gridMesh);
 
-      // Grupo para armazenar os rastros coloridos e as pessoas
       const simulationGroup = new THREE.Group();
       scene.add(simulationGroup);
 
-      // Criação de múltiplos agentes (pessoas) caminhando
-      const peopleCount = 6;
-      const agents = [];
-
-      for (let i = 0; i < peopleCount; i++) {
-        const agent = {
-          x: (Math.random() - 0.5) * 10,
-          z: (Math.random() - 0.5) * 10,
-          vx: (Math.random() - 0.5) * 0.08,
-          vz: (Math.random() - 0.5) * 0.08,
-          color: getRandomTrafficColor(),
-          mesh: null
-        };
-
-        // Bonequinho indicador da pessoa
-        const personGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.8, 8);
-        const personMat = new THREE.MeshBasicMaterial({ color: agent.color });
-        const personMesh = new THREE.Mesh(personGeo, personMat);
-        personMesh.position.set(agent.x, 0.4, agent.z);
-        simulationGroup.add(personMesh);
-        agent.mesh = personMesh;
-
-        agents.push(agent);
-      }
-
-      function getRandomTrafficColor() {
-        const colors = [0x22c55e, 0xeab308, 0xef4444, 0xa855f7]; // Verde, Amarelo, Vermelho, Roxo
-        return colors[Math.floor(Math.random() * colors.length)];
-      }
+      // Agentes invisíveis gerando apenas os rastros com progressão de cores
+      const agents = [
+        { x: -3, z: -3, vx: 0.04, vz: 0.03, color: 0x22c55e }, // Verde (Baixo)
+        { x: 3, z: 2, vx: -0.03, vz: 0.05, color: 0xeab308 },  // Amarelo (Médio)
+        { x: 0, z: -4, vx: 0.02, vz: -0.04, color: 0xef4444 }, // Vermelho (Alto)
+        { x: -2, z: 4, vx: 0.03, vz: -0.02, color: 0xa855f7 }  // Roxo (Intenso)
+      ];
 
       function animateMap() {
         requestAnimationFrame(animateMap);
@@ -397,17 +374,14 @@
           if (agent.x > 6 || agent.x < -6) agent.vx *= -1;
           if (agent.z > 6 || agent.z < -6) agent.vz *= -1;
 
-          agent.mesh.position.set(agent.x, 0.4, agent.z);
-
-          // Criação contínua do rastro com progressão de cores térmicas
+          // Criação dos blocos de rastro coloridos sem os bonecos
           if (Math.random() < 0.4) {
-            const trailGeo = new THREE.BoxGeometry(0.3, 0.05, 0.3);
+            const trailGeo = new THREE.BoxGeometry(0.35, 0.06, 0.35);
             const trailMat = new THREE.MeshBasicMaterial({ color: agent.color });
             const trail = new THREE.Mesh(trailGeo, trailMat);
             trail.position.set(agent.x, 0.02, agent.z);
             simulationGroup.add(trail);
 
-            // Incrementa métricas suavemente
             contadorPassadas += 0.05;
             energiaAcumulada += 0.2;
             document.getElementById('passadas-val').innerText = Math.floor(contadorPassadas);
