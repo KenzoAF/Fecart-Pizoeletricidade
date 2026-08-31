@@ -21,7 +21,7 @@
       overflow: hidden;
     }
 
-    /* Barra de Navegação Superior */
+    /* Barra de Navegação */
     .nav-tabs {
       display: flex;
       gap: 12px;
@@ -142,136 +142,153 @@
       background: #388bfd;
     }
 
-    /* Layout da Aba 2 (Modelo 3D Físico Realista) */
-    #hardware-layout {
-      display: flex;
+    /* Layout da Aba 2 (Explicação Interativa do Projeto Físico) */
+    .explain-container {
       width: 100%;
       height: 100%;
       background: #0d1117;
-    }
-
-    #hardware-3d-view {
-      flex: 1;
-      height: 100%;
-      position: relative;
-    }
-
-    .hardware-info-panel {
-      width: 320px;
-      background: #161b22;
-      border-left: 1px solid #30363d;
-      padding: 20px;
+      padding: 40px;
       overflow-y: auto;
     }
 
-    .info-card {
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 12px;
+    .explain-header {
+      max-width: 900px;
+      margin: 0 auto 30px auto;
     }
 
-    .info-card h4 {
-      font-size: 13px;
-      margin-bottom: 4px;
+    .explain-header h2 {
+      font-size: 28px;
       color: #58a6ff;
+      margin-bottom: 8px;
     }
 
-    .color-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 6px;
+    .explain-header p {
+      color: #8b949e;
+      font-size: 14px;
+    }
+
+    .explain-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .explain-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .explain-card:hover {
+      border-color: #58a6ff;
+      transform: translateY(-3px);
+    }
+
+    .explain-card h3 {
+      color: #58a6ff;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .explain-card p {
+      color: #c9d1d9;
+      font-size: 13px;
+      line-height: 1.5;
     }
   </style>
 
-  <!-- Bibliotecas Three.js -->
+  <!-- Biblioteca Three.js para o mapa de calor interativo -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-  <!-- Menu Superior de Abas -->
+  <!-- Menu de Navegação Superior -->
   <nav class="nav-tabs">
     <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D (Mapa de Calor)</button>
-    <button class="tab-btn" onclick="openTab(event, 'hardware')">Modelo 3D do Projeto Físico</button>
+    <button class="tab-btn" onclick="openTab(event, 'hardware')">Projeto Físico Interativo</button>
   </nav>
 
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação com o Mapa de Calor Original -->
+    <!-- ABA 1: Simulação com Mapa de Calor Original e Interativo -->
     <div id="simulacao" class="tab-content active">
       <div class="sim-layout">
         <div class="sidebar">
           <div>
             <div style="background: #1f6feb; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">FECART - PIEZOELÉTRICA</div>
             <div class="panel-title">Mapa de Calor Dinâmico</div>
-            <div class="panel-subtitle">Monitoramento em tempo real do fluxo de pedestres e geração de energia limpa.</div>
+            <div class="panel-subtitle">Clique sobre o piso ao lado para simular o tráfego de pessoas e gerar energia térmica em tempo real.</div>
           </div>
 
           <div style="background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d;">
             <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px;">Legenda Térmica</div>
             <div style="font-size: 11px; color: #8b949e; display: flex; flex-direction: column; gap: 3px;">
-              <div>🟢 Baixo Fluxo</div>
-              <div>🟡 Médio Fluxo</div>
-              <div>🔴 Alto Fluxo</div>
-              <div>🟣 Fluxo Crítico / Pico</div>
+              <div>🟢 Baixo Fluxo (Verde)</div>
+              <div>🟡 Médio Fluxo (Amarelo)</div>
+              <div>🔴 Alto Fluxo (Vermelho)</div>
+              <div>🟣 Fluxo Intenso (Roxo)</div>
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div class="card-metric">
-              <span>Energia Total</span>
-              <h3 id="energia-val">14,820 J</h3>
+              <span>Energia Gerada</span>
+              <h3 id="energia-val">0.0 J</h3>
             </div>
             <div class="card-metric">
-              <span>Potência</span>
-              <h3 id="potencia-val">64.2 W</h3>
+              <span>Potência Inst.</span>
+              <h3 id="potencia-val">0.0 W</h3>
             </div>
             <div class="card-metric">
               <span>Passadas</span>
-              <h3 id="passadas-val">3,120</h3>
+              <h3 id="passadas-val">0</h3>
             </div>
             <div class="card-metric">
               <span>Eficiência</span>
-              <h3>94.5%</h3>
+              <h3>92.4%</h3>
             </div>
           </div>
 
-          <button class="btn-action" onclick="reiniciarContadores()">Resetar Métricas</button>
+          <button class="btn-action" onclick="reiniciarSimulacao()">Reiniciar Mapa</button>
         </div>
 
         <div class="main-canvas-area" id="canvas-container-map"></div>
       </div>
     </div>
 
-    <!-- ABA 2: Modelo 3D Realista do Piso Físico -->
+    <!-- ABA 2: Explicação Interativa do Projeto Físico -->
     <div id="hardware" class="tab-content">
-      <div id="hardware-layout">
-        <div id="hardware-3d-view"></div>
-        <div class="hardware-info-panel">
-          <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 16px;">Estrutura do Módulo Real</h3>
-          
-          <div class="info-card">
-            <h4><span class="color-dot" style="background: #238636;"></span>Superfície Antiderrapante</h4>
-            <p style="font-size: 11px; color: #8b949e;">Placa polimérica reforçada que suporta o peso e transmite a força vertical uniformemente.</p>
+      <div class="explain-container">
+        <div class="explain-header">
+          <h2>Como Funciona o Projeto Físico</h2>
+          <p>Clique nos blocos abaixo para entender detalhadamente cada etapa de funcionamento do nosso piso piezoelétrico na vida real.</p>
+        </div>
+
+        <div class="explain-grid">
+          <div class="explain-card" onclick="alert('Camada superior responsável por suportar o tráfego intenso de pedestres e proteger os sensores internos contra intempéries e desgaste.')">
+            <h3>1. Superfície de Impacto</h3>
+            <p>Placa polimérica de alta resistência que recebe o peso do pedestre e distribui a força de forma uniforme para os módulos internos.</p>
           </div>
 
-          <div class="info-card">
-            <h4><span class="color-dot" style="background: #8957e5;"></span>Discos PZT (Piezoelétricos)</h4>
-            <p style="font-size: 11px; color: #8b949e;">Módulos cerâmicos dispostos estrategicamente para máxima conversão sob compressão.</p>
+          <div class="explain-card" onclick="alert('O coração do projeto: conversão direta de energia mecânica (pressão do passo) em eletricidade através do efeito piezoelétrico dos cristais PZT.')">
+            <h3>2. Pastilhas Piezoelétricas (PZT)</h3>
+            <p>Discos cerâmicos especiais que sofrem deformação mecânica sob pressão, alterando sua polarização e gerando cargas elétricas instantâneas.</p>
           </div>
 
-          <div class="info-card">
-            <h4><span class="color-dot" style="background: #d29922;"></span>Placa Base & Retificador</h4>
-            <p style="font-size: 11px; color: #8b949e;">Chassi estrutural em aço com circuito integrado para conversão de corrente.</p>
+          <div class="explain-card" onclick="alert('Responsável por tratar a energia gerada, convertendo a corrente alternada irregular (AC) em corrente contínua estável (DC).')">
+            <h3>3. Ponte Retificadora & Circuito</h3>
+            <p>Conjunto eletrônico que estabiliza os picos de tensão causados pelas diferentes pisadas, protegendo o sistema contra sobrecargas.</p>
           </div>
 
-          <div class="info-card">
-            <h4><span class="color-dot" style="background: #1f6feb;"></span>Módulo de Armazenamento</h4>
-            <p style="font-size: 11px; color: #8b949e;">Supercapacitores protegidos que guardam a carga gerada pelas passadas.</p>
+          <div class="explain-card" onclick="alert('Armazena a energia capturada para ser utilizada de forma inteligente em sistemas urbanos, como iluminação pública LED ou totens.')">
+            <h3>4. Sistema de Acumulação</h3>
+            <p>Supercapacitores e baterias de alta durabilidade que acumulam a energia gerada pelo fluxo constante de pessoas ao longo do dia.</p>
           </div>
         </div>
       </div>
@@ -280,8 +297,6 @@
   </div>
 
   <script>
-    let hardware3DInitialized = false;
-
     function openTab(evt, tabName) {
       const contents = document.querySelectorAll('.tab-content');
       contents.forEach(content => content.classList.remove('active'));
@@ -294,19 +309,21 @@
 
       if (tabName === 'simulacao') {
         window.dispatchEvent(new Event('resize'));
-      } else if (tabName === 'hardware' && !hardware3DInitialized) {
-        initRealisticHardware3D();
-        hardware3DInitialized = true;
       }
     }
 
-    function reiniciarContadores() {
+    let contadorPassadas = 0;
+    let energiaAcumulada = 0;
+
+    function reiniciarSimulacao() {
+      contadorPassadas = 0;
+      energiaAcumulada = 0;
       document.getElementById('energia-val').innerText = '0.0 J';
       document.getElementById('potencia-val').innerText = '0.0 W';
       document.getElementById('passadas-val').innerText = '0';
     }
 
-    // --- 1. Renderização do Mapa de Calor (Aba 1) ---
+    // --- Inicialização do Mapa de Calor Interativo (Aba 1) ---
     function initMapSimulation() {
       const container = document.getElementById('canvas-container-map');
       const scene = new THREE.Scene();
@@ -334,13 +351,34 @@
       gridMesh.rotation.x = -Math.PI / 2;
       scene.add(gridMesh);
 
-      // Superfície do Mapa de Calor Dinâmico
+      // Superfície do Mapa de Calor Original com Interatividade por Clique
       const heatGeo = new THREE.PlaneGeometry(13.8, 13.8, 40, 40);
       const heatMat = new THREE.MeshStandardMaterial({ color: 0x8957e5, roughness: 0.3 });
       const heatMesh = new THREE.Mesh(heatGeo, heatMat);
       heatMesh.rotation.x = -Math.PI / 2;
       heatMesh.position.y = 0.05;
       scene.add(heatMesh);
+
+      // Interação de Clique para simular passos no mapa
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      container.addEventListener('click', (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(heatMesh);
+
+        if (intersects.length > 0) {
+          contadorPassadas++;
+          energiaAcumulada += 4.8;
+          document.getElementById('passadas-val').innerText = contadorPassadas;
+          document.getElementById('energia-val').innerText = energiaAcumulada.toFixed(1) + ' J';
+          document.getElementById('potencia-val').innerText = (Math.random() * 15 + 25).toFixed(1) + ' W';
+        }
+      });
 
       function animateMap() {
         requestAnimationFrame(animateMap);
@@ -368,89 +406,6 @@
       });
     }
 
-    // --- 2. Renderização do Modelo 3D Realista do Hardware (Aba 2) ---
-    function initRealisticHardware3D() {
-      const container = document.getElementById('hardware-3d-view');
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0d1117);
-
-      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(10, 12, 16);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      container.appendChild(renderer.domElement);
-
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-      const light = new THREE.DirectionalLight(0xffffff, 1.2);
-      light.position.set(15, 25, 15);
-      scene.add(light);
-
-      const moduleGroup = new THREE.Group();
-
-      // Caixa Base de Aço Externa (Chassi Modular)
-      const baseGeo = new THREE.BoxGeometry(6.2, 0.4, 6.2);
-      const baseMat = new THREE.MeshStandardMaterial({ color: 0x30363d, metalness: 0.8, roughness: 0.2 });
-      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-      baseMesh.position.y = -0.5;
-      moduleGroup.add(baseMesh);
-
-      // Placa de Circuito e Retificador Interno
-      const circuitGeo = new THREE.BoxGeometry(5.6, 0.1, 5.6);
-      const circuitMat = new THREE.MeshStandardMaterial({ color: 0xd29922, roughness: 0.4 });
-      const circuitMesh = new THREE.Mesh(circuitGeo, circuitMat);
-      circuitMesh.position.y = -0.25;
-      moduleGroup.add(circuitMesh);
-
-      // Supercapacitores de Armazenamento
-      const capMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, metalness: 0.5 });
-      for(let i = -1; i <= 1; i += 2) {
-        const capGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 32);
-        const capMesh = new THREE.Mesh(capGeo, capMat);
-        capMesh.position.set(i * 1.5, 0.2, 0);
-        moduleGroup.add(capMesh);
-      }
-
-      // Matriz de Pastilhas Piezoelétricas (PZT) nos cantos e centro
-      const piezoMat = new THREE.MeshStandardMaterial({ color: 0x8957e5, roughness: 0.3 });
-      for (let x = -1.8; x <= 1.8; x += 1.8) {
-        for (let z = -1.8; z <= 1.8; z += 1.8) {
-          const piezoGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.2, 32);
-          const piezoMesh = new THREE.Mesh(piezoGeo, piezoMat);
-          piezoMesh.position.set(x, 0.7, z);
-          moduleGroup.add(piezoMesh);
-        }
-      }
-
-      // Superfície Superior Antiderrapante (Com efeito translúcido/fosco realista)
-      const topGeo = new THREE.BoxGeometry(6, 0.3, 6);
-      const topMat = new THREE.MeshStandardMaterial({ color: 0x238636, roughness: 0.4, transparent: true, opacity: 0.9 });
-      const topMesh = new THREE.Mesh(topGeo, topMat);
-      topMesh.position.y = 1.4;
-      moduleGroup.add(topMesh);
-
-      scene.add(moduleGroup);
-
-      function animateHardware() {
-        requestAnimationFrame(animateHardware);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animateHardware();
-
-      window.addEventListener('resize', () => {
-        if(container.clientWidth > 0) {
-          camera.aspect = container.clientWidth / container.clientHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(container.clientWidth, container.clientHeight);
-        }
-      });
-    }
-
-    // Inicializa o mapa ao carregar a página
     window.onload = function() {
       initMapSimulation();
     };
