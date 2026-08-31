@@ -1,6 +1,647 @@
-// Paleta de gradiente térmico travada no Vermelho Intenso
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulação de Piso Piezoelétrico | FECART</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+  <!-- Bibliotecas Three.js e OrbitControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #08090d;
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Painel HUD / Interface Superior */
+    .hud-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      width: 360px;
+      max-width: calc(100vw - 40px);
+      background: rgba(13, 17, 23, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: 'Orbitron', sans-serif;
+      margin-bottom: 10px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #3b82f6;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    p.subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 16px;
+    }
+
+    /* Legenda do Mapa de Calor */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .legend-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .legend-color-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .swatch-neutral { background: #0c1018; border: 1px solid #334155; }
+    .swatch-blue { background: #0088ff; box-shadow: 0 0 10px rgba(0, 136, 255, 0.8); }
+    .swatch-green { background: #00ff66; box-shadow: 0 0 10px rgba(0, 255, 102, 0.8); }
+    .swatch-yellow { background: #ffea00; box-shadow: 0 0 10px rgba(255, 234, 0, 0.8); }
+    .swatch-red { background: #ff1e1e; box-shadow: 0 0 10px rgba(255, 30, 30, 0.8); }
+
+    .legend-traffic {
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .legend-energy {
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: 'Orbitron', monospace;
+    }
+
+    /* Métricas / Telemetria */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Controles */
+    .controls-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+
+    /* Dica de Navegação */
+    .hint-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(13, 17, 23, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 30px;
+      padding: 8px 18px;
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .hint-bar span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hint-key {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- Painel HUD / Telemetria -->
+  <div class="hud-panel">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      FECART • PIEZOELÉTRICA
+    </div>
+
+    <h1>Piso Gerador de Energia</h1>
+    <p class="subtitle">
+      Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.
+    </p>
+
+    <div class="section-title">Escala Térmica de Tráfego</div>
+    <div class="legend-container">
+      <div class="legend-item">
+        <div class="legend-color-box">
+          <div class="color-swatch swatch-neutral"></div>
+          <span class="legend-traffic">Sem Passagens</span>
+        </div>
+        <span class="legend-energy">Frio / Zero</span>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-color-box">
+          <div class="color-swatch swatch-blue"></div>
+          <span class="legend-traffic">Tráfego Baixo</span>
+        </div>
+        <span class="legend-energy">Azul</span>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-color-box">
+          <div class="color-swatch swatch-green"></div>
+          <span class="legend-traffic">Tráfego Médio</span>
+        </div>
+        <span class="legend-energy">Verde</span>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-color-box">
+          <div class="color-swatch swatch-yellow"></div>
+          <span class="legend-traffic">Tráfego Alto</span>
+        </div>
+        <span class="legend-energy">Amarelo</span>
+      </div>
+
+      <div class="legend-item">
+        <div class="legend-color-box">
+          <div class="color-swatch swatch-red"></div>
+          <span class="legend-traffic">Tráfego Intenso</span>
+        </div>
+        <span class="legend-energy">Vermelho</span>
+      </div>
+    </div>
+
+    <div class="section-title">Telemetria em Tempo Real</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Energia Acumulada</div>
+        <div class="metric-value" id="val-joules">0.0 J</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Potência Inst.</div>
+        <div class="metric-value" id="val-watts" style="color: #4ade80;">0.0 W</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Passadas Registradas</div>
+        <div class="metric-value" id="val-steps" style="color: #facc15;">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Área Ativada</div>
+        <div class="metric-value" id="val-coverage" style="color: #f000ff;">0.0%</div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <button class="btn" id="btn-reset" title="Limpar mapa de calor">
+        🔄 Reiniciar Mapa
+      </button>
+      <button class="btn btn-primary" id="btn-pause" title="Pausar pessoas">
+        ⏸️ Pausar
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Dicas de Câmera -->
+  <div class="hint-bar">
+    <span><span class="hint-key">Botão Esquerdo</span> Rotacionar</span>
+    <span><span class="hint-key">Scroll</span> Zoom</span>
+    <span><span class="hint-key">Botão Direito</span> Mover Cena</span>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. CONFIGURAÇÕES PRINCIPAIS
+    // ==========================================
+    const FLOOR_SIZE = 40;
+    const HALF_FLOOR = FLOOR_SIZE / 2;
+    const NUM_AGENTS = 8;
+    const HEATMAP_RES = 512;
+    const JOULES_PER_STEP = 4.8;
+    
+    let isPaused = false;
+    let totalJoules = 0;
+    let totalSteps = 0;
+    let instantaneousWatts = 0;
+
+    // ==========================================
+    // 2. CONFIGURAÇÃO DA CENA THREE.JS
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x08090d);
+    scene.fog = new THREE.FogExp2(0x08090d, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 36, 42);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.05;
+    controls.minDistance = 15;
+    controls.maxDistance = 100;
+    controls.target.set(0, 0, 0);
+
+    // ==========================================
+    // 3. ILUMINAÇÃO
+    // ==========================================
+    const ambientLight = new THREE.AmbientLight(0x38455e, 1.4);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(25, 45, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 10;
+    dirLight.shadow.camera.far = 120;
+    dirLight.shadow.camera.left = -HALF_FLOOR - 5;
+    dirLight.shadow.camera.right = HALF_FLOOR + 5;
+    dirLight.shadow.camera.top = HALF_FLOOR + 5;
+    dirLight.shadow.camera.bottom = -HALF_FLOOR - 5;
+    scene.add(dirLight);
+
+    const cornerLights = [
+      { x: -HALF_FLOOR, z: -HALF_FLOOR, color: 0x38bdf8 },
+      { x: HALF_FLOOR, z: HALF_FLOOR, color: 0x818cf8 }
+    ];
+    cornerLights.forEach(l => {
+      const pLight = new THREE.PointLight(l.color, 2, 25);
+      pLight.position.set(l.x, 3, l.z);
+      scene.add(pLight);
+    });
+
+    // ==========================================
+    // 4. ESTRUTURA DO PISO E CANVAS AUXILIAR
+    // ==========================================
+    const heatMapData = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = HEATMAP_RES;
+    outputCanvas.height = HEATMAP_RES;
+    const outputCtx = outputCanvas.getContext('2d');
+
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = HEATMAP_RES;
+    bgCanvas.height = HEATMAP_RES;
+    const bgCtx = bgCanvas.getContext('2d');
+
+    function initFloorCanvas() {
+      bgCtx.fillStyle = '#0c1018';
+      bgCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
+
+      const numSquares = 16;
+      const squareSize = HEATMAP_RES / numSquares;
+      for (let r = 0; r < numSquares; r++) {
+        for (let c = 0; c < numSquares; c++) {
+          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#101622' : '#0a0d14';
+          bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+          bgCtx.lineWidth = 1;
+          bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+        }
+      }
+      
+      outputCtx.drawImage(bgCanvas, 0, 0);
+    }
+    initFloorCanvas();
+
+    const floorTexture = new THREE.CanvasTexture(outputCanvas);
+    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // ==========================================
+    // 5. GEOMETRIA DO PISO
+    // ==========================================
+    const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
+    const floorMat = new THREE.MeshBasicMaterial({ map: floorTexture });
+    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+    floorMesh.rotation.x = -Math.PI / 2;
+    scene.add(floorMesh);
+
+    const borderGeo = new THREE.BoxGeometry(FLOOR_SIZE + 1.2, 0.6, FLOOR_SIZE + 1.2);
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0x18202e, roughness: 0.7, metalness: 0.5 });
+    const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+    borderMesh.position.y = -0.31;
+    scene.add(borderMesh);
+
+    const outerGrid = new THREE.GridHelper(120, 60, 0x1e293b, 0x0f172a);
+    outerGrid.position.y = -0.32;
+    scene.add(outerGrid);
+
+    // ==========================================
+    // 6. MODELOS DE PESSOAS 3D (AVATARES HUMANOS)
+    // ==========================================
+    const humanPalettes = [
+      { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a, hair: 0x1e1b4b },
+      { shirt: 0xdc2626, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x451a03 },
+      { shirt: 0x16a34a, pants: 0x0f172a, skin: 0x8d5524, shoes: 0x1e293b, hair: 0x171717 },
+      { shirt: 0xea580c, pants: 0x475569, skin: 0xffd1b3, shoes: 0xffffff, hair: 0x78350f },
+      { shirt: 0x9333ea, pants: 0x1e293b, skin: 0xc68642, shoes: 0x0f172a, hair: 0x0a0a0a },
+      { shirt: 0x0891b2, pants: 0x334155, skin: 0xf1c27d, shoes: 0xffffff, hair: 0x292524 },
+      { shirt: 0x10b981, pants: 0x1e293b, skin: 0xffdbac, shoes: 0x1e1e1e, hair: 0x3f2e21 },
+      { shirt: 0xf59e0b, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff, hair: 0x171717 }
+    ];
+
+    function createHumanModel(palette) {
+      const humanGroup = new THREE.Group();
+
+      const skinMat = new THREE.MeshStandardMaterial({ color: palette.skin, roughness: 0.6 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: palette.shirt, roughness: 0.5 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: palette.pants, roughness: 0.7 });
+      const shoesMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.4 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: palette.hair, roughness: 0.8 });
+
+      // Tronco
+      const torsoGeo = new THREE.BoxGeometry(0.7, 0.85, 0.45);
+      const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+      torsoMesh.position.y = 1.4;
+      torsoMesh.castShadow = true;
+      torsoMesh.receiveShadow = true;
+      humanGroup.add(torsoMesh);
+
+      // Cabeça
+      const headGeo = new THREE.SphereGeometry(0.24, 16, 16);
+      const headMesh = new THREE.Mesh(headGeo, skinMat);
+      headMesh.position.y = 2.05;
+      headMesh.castShadow = true;
+      humanGroup.add(headMesh);
+
+      // Cabelo
+      const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+      const hairMesh = new THREE.Mesh(hairGeo, hairMat);
+      hairMesh.position.y = 2.08;
+      hairMesh.castShadow = true;
+      humanGroup.add(hairMesh);
+
+      // Braço Esquerdo
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(-0.46, 1.75, 0);
+      const armGeo = new THREE.BoxGeometry(0.2, 0.75, 0.2);
+      const leftArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      leftArmMesh.position.y = -0.35;
+      leftArmMesh.castShadow = true;
+      leftArmPivot.add(leftArmMesh);
+
+      const handGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+      const leftHandMesh = new THREE.Mesh(handGeo, skinMat);
+      leftHandMesh.position.y = -0.76;
+      leftArmPivot.add(leftHandMesh);
+      humanGroup.add(leftArmPivot);
+
+      // Braço Direito
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(0.46, 1.75, 0);
+      const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      rightArmMesh.position.y = -0.35;
+      rightArmMesh.castShadow = true;
+      rightArmPivot.add(rightArmMesh);
+
+      const rightHandMesh = new THREE.Mesh(handGeo, skinMat);
+      rightHandMesh.position.y = -0.76;
+      rightArmPivot.add(rightHandMesh);
+      humanGroup.add(rightArmPivot);
+
+      // Perna Esquerda
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(-0.2, 0.95, 0);
+      const legGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
+      const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      leftLegMesh.position.y = -0.42;
+      leftLegMesh.castShadow = true;
+      leftLegMesh.receiveShadow = true;
+      leftLegPivot.add(leftLegMesh);
+
+      const shoeGeo = new THREE.BoxGeometry(0.27, 0.15, 0.42);
+      const leftShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
+      leftShoeMesh.position.set(0, -0.88, 0.08);
+      leftShoeMesh.castShadow = true;
+      leftLegPivot.add(leftShoeMesh);
+      humanGroup.add(leftLegPivot);
+
+      // Perna Direita
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(0.2, 0.95, 0);
+      const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      rightLegMesh.position.y = -0.42;
+      rightLegMesh.castShadow = true;
+      rightLegMesh.receiveShadow = true;
+      rightLegPivot.add(rightLegMesh);
+
+      const rightShoeMesh = new THREE.Mesh(shoeGeo, shoesMat);
+      rightShoeMesh.position.set(0, -0.88, 0.08);
+      rightShoeMesh.castShadow = true;
+      rightLegPivot.add(rightShoeMesh);
+      humanGroup.add(rightLegPivot);
+
+      return {
+        root: humanGroup,
+        leftArm: leftArmPivot,
+        rightArm: rightArmPivot,
+        leftLeg: leftLegPivot,
+        rightLeg: rightLegPivot,
+        torso: torsoMesh
+      };
+    }
+
+    const pedestrians = [];
+
+    for (let i = 0; i < NUM_AGENTS; i++) {
+      const palette = humanPalettes[i % humanPalettes.length];
+      const human = createHumanModel(palette);
+
+      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      human.root.position.set(x, 0, z);
+
+      const speed = 0.08 + Math.random() * 0.04;
+      const angle = Math.random() * Math.PI * 2;
+      const vx = Math.cos(angle) * speed;
+      const vz = Math.sin(angle) * speed;
+
+      human.root.rotation.y = Math.atan2(vx, vz);
+
+      scene.add(human.root);
+
+      pedestrians.push({
+        id: i,
+        human: human,
+        vx: vx,
+        vz: vz,
+        speed: speed,
+        walkCycle: Math.random() * Math.PI * 2,
+        turnTimer: Math.random() * 60,
+        lastStepX: x,
+        lastStepZ: z
+      });
+    }
+
+    // ==========================================
+    // 7. MOTOR TÉRMICO CONTINUO (TRAVA NO VERMELHO)
+    // ==========================================
+    const MAX_HEAT_VAL = 8.0; 
+
+    // Paleta de gradiente térmico travada no Vermelho Intenso
     function getContinuousHeatColor(value) {
-      // Normalização do valor térmico entre 0.0 e 1.0
       const v = Math.min(1.0, Math.max(0.0, value / MAX_HEAT_VAL));
 
       let r = 0, g = 0, b = 0;
@@ -24,7 +665,7 @@
         g = 255;
         b = 0;
       } else { 
-        // Tráfego máximo: Amarelo -> Vermelho Puro (Trava no Vermelho #FF0000)
+        // Tráfego máximo: Amarelo -> Vermelho Puro (#FF0000)
         const t = (v - 0.70) / 0.30;
         r = 255;
         g = Math.floor(255 * (1 - t));
@@ -33,3 +674,210 @@
 
       return [r, g, b];
     }
+
+    // Aplicação de calor com atenuação ultra-suave
+    function addHeatAtWorldPos(agentId, wx, wz) {
+      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+
+      const radius = 22; 
+      const minX = Math.max(0, cx - radius);
+      const maxX = Math.min(HEATMAP_RES - 1, cx + radius);
+      const minY = Math.max(0, cy - radius);
+      const maxY = Math.min(HEATMAP_RES - 1, cy + radius);
+
+      const r2 = radius * radius;
+
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist2 = dx * dx + dy * dy;
+
+          if (dist2 <= r2) {
+            const dist = Math.sqrt(dist2);
+            // Dissipação cossenoidal suave
+            const falloff = 0.5 * (1 + Math.cos((dist / radius) * Math.PI));
+            const idx = y * HEATMAP_RES + x;
+            
+            // Deposita acúmulo gradual por frame
+            heatMapData[idx] += falloff * 0.008; 
+          }
+        }
+      }
+    }
+
+    let frameCounter = 0;
+    function updateHeatmapTexture() {
+      const bgImgData = bgCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
+      const data = bgImgData.data;
+      let activePixels = 0;
+
+      for (let i = 0; i < heatMapData.length; i++) {
+        const val = heatMapData[i];
+
+        if (val > 0.02) {
+          activePixels++;
+          const col = getContinuousHeatColor(val);
+          const pIdx = i * 4;
+
+          const alpha = Math.min(0.75, val * 0.25 + 0.1);
+
+          data[pIdx]     = Math.round(data[pIdx] * (1 - alpha) + col[0] * alpha);
+          data[pIdx + 1] = Math.round(data[pIdx + 1] * (1 - alpha) + col[1] * alpha);
+          data[pIdx + 2] = Math.round(data[pIdx + 2] * (1 - alpha) + col[2] * alpha);
+        }
+      }
+
+      outputCtx.putImageData(bgImgData, 0, 0);
+      floorTexture.needsUpdate = true;
+
+      const coveragePercent = ((activePixels / heatMapData.length) * 100).toFixed(1);
+      document.getElementById('val-coverage').innerText = `${coveragePercent}%`;
+    }
+
+    // ==========================================
+    // 8. FÍSICA E MOVIMENTO DOS HUMANOS
+    // ==========================================
+    const boundLimit = HALF_FLOOR - 1.8;
+
+    function updateAgents() {
+      let stepOccurredThisFrame = false;
+
+      pedestrians.forEach((agent) => {
+        if (!isPaused) {
+          // 1. Movimento
+          agent.human.root.position.x += agent.vx;
+          agent.human.root.position.z += agent.vz;
+
+          const currX = agent.human.root.position.x;
+          const currZ = agent.human.root.position.z;
+
+          // 2. Animação de caminhada
+          agent.walkCycle += agent.speed * 2.8;
+          const legSwing = Math.sin(agent.walkCycle) * 0.65;
+          const armSwing = Math.sin(agent.walkCycle) * 0.55;
+
+          agent.human.leftLeg.rotation.x = legSwing;
+          agent.human.rightLeg.rotation.x = -legSwing;
+          agent.human.leftArm.rotation.x = -armSwing;
+          agent.human.rightArm.rotation.x = armSwing;
+
+          agent.human.root.position.y = Math.abs(Math.sin(agent.walkCycle * 2)) * 0.08;
+          agent.human.torso.rotation.z = Math.sin(agent.walkCycle) * 0.03;
+
+          // 3. Rotação na direção do movimento
+          const targetAngle = Math.atan2(agent.vx, agent.vz);
+          let diff = targetAngle - agent.human.root.rotation.y;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          agent.human.root.rotation.y += diff * 0.1;
+
+          // 4. Rebatimento nas bordas do piso
+          if (agent.human.root.position.x > boundLimit) { 
+            agent.human.root.position.x = boundLimit; 
+            agent.vx = -Math.abs(agent.vx); 
+          } else if (agent.human.root.position.x < -boundLimit) { 
+            agent.human.root.position.x = -boundLimit; 
+            agent.vx = Math.abs(agent.vx); 
+          }
+
+          if (agent.human.root.position.z > boundLimit) { 
+            agent.human.root.position.z = boundLimit; 
+            agent.vz = -Math.abs(agent.vz); 
+          } else if (agent.human.root.position.z < -boundLimit) { 
+            agent.human.root.position.z = -boundLimit; 
+            agent.vz = Math.abs(agent.vz); 
+          }
+
+          // 5. Mudança suave de direção
+          agent.turnTimer--;
+          if (agent.turnTimer <= 0) {
+            agent.turnTimer = 90 + Math.random() * 120;
+            const angleToCenter = Math.atan2(-currZ, -currX);
+            const currentAngle = Math.atan2(agent.vz, agent.vx);
+            const blendedAngle = currentAngle * 0.5 + angleToCenter * 0.5 + (Math.random() - 0.5) * 0.8;
+            agent.vx = Math.cos(blendedAngle) * agent.speed;
+            agent.vz = Math.sin(blendedAngle) * agent.speed;
+          }
+
+          // 6. Deposita o rastro térmico fluido
+          addHeatAtWorldPos(agent.id, currX, currZ);
+
+          // 7. Detecção de passos para telemetria
+          const distSinceLastStep = Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ);
+          if (distSinceLastStep > 1.2) {
+            agent.lastStepX = currX;
+            agent.lastStepZ = currZ;
+            totalSteps++;
+            totalJoules += JOULES_PER_STEP;
+            stepOccurredThisFrame = true;
+          }
+        }
+      });
+
+      if (stepOccurredThisFrame) {
+        instantaneousWatts = (NUM_AGENTS * 6.5) + (Math.random() * 8.0);
+      } else {
+        instantaneousWatts = Math.max(0, instantaneousWatts * 0.94);
+      }
+
+      document.getElementById('val-joules').innerText = `${totalJoules.toFixed(1)} J`;
+      document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
+      document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
+    }
+
+    // ==========================================
+    // 9. LOOP PRINCIPAL DE ANIMAÇÃO
+    // ==========================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      controls.update();
+      updateAgents();
+
+      frameCounter++;
+      if (frameCounter % 2 === 0 && !isPaused) {
+        updateHeatmapTexture();
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // ==========================================
+    // 10. INTERAÇÃO E EVENTOS
+    // ==========================================
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      heatMapData.fill(0);
+      initFloorCanvas();
+      floorTexture.needsUpdate = true;
+      totalJoules = 0;
+      totalSteps = 0;
+      instantaneousWatts = 0;
+      document.getElementById('val-joules').innerText = '0.0 J';
+      document.getElementById('val-watts').innerText = '0.0 W';
+      document.getElementById('val-steps').innerText = '0';
+      document.getElementById('val-coverage').innerText = '0.0%';
+    });
+
+    const btnPause = document.getElementById('btn-pause');
+    btnPause.addEventListener('click', () => {
+      isPaused = !isPaused;
+      if (isPaused) {
+        btnPause.innerHTML = '▶️ Retomar';
+        btnPause.classList.remove('btn-primary');
+      } else {
+        btnPause.innerHTML = '⏸️ Pausar';
+        btnPause.classList.add('btn-primary');
+      }
+    });
+  </script>
+</body>
+</html>
