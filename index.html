@@ -9,7 +9,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            width: 300px;
+            width: 280px;
             background: rgba(15, 20, 30, 0.9);
             padding: 20px;
             border-radius: 10px;
@@ -17,7 +17,7 @@
         }
         h2 { font-size: 16px; margin-bottom: 5px; color: #00d2ff; }
         p { font-size: 12px; color: #aaa; }
-        .legenda-item { display: flex; align-items: center; margin: 5px 0; font-size: 13px; }
+        .legenda-item { display: flex; align-items: center; margin: 6px 0; font-size: 13px; }
         .cor-box { width: 14px; height: 14px; display: inline-block; margin-right: 8px; border-radius: 3px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,7 +27,7 @@
     <div id="ui">
         <h2>Piso Gerador de Energia</h2>
         <p>Conversão mecânica-elétrica via efeito piezoelétrico.</p>
-        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+        <hr style="border:0; border-top:1px solid #333; margin:12px 0;">
         <strong>Escala de Tráfego</strong>
         <div class="legenda-item"><span class="cor-box" style="background:#00FF00;"></span> Verde (1 pessoa)</div>
         <div class="legenda-item"><span class="cor-box" style="background:#FFFF00;"></span> Amarelo (2 pessoas)</div>
@@ -36,10 +36,10 @@
     </div>
 
     <script>
-        // Configuração básica da Cena 3D
+        // Configuração da Cena 3D
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 15, 20);
+        camera.position.set(0, 18, 20);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -50,49 +50,89 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
-        // Função para definir a cor do rastro com base na quantidade de pessoas (Legenda)
-        function obterCorRastro(quantidadePessoas) {
+        // Adicionar um piso de fundo quadriculado discreto para referência
+        const gridHelper = new THREE.GridHelper(20, 20, 0x222222, 0x111111);
+        gridHelper.position.y = -0.01;
+        scene.add(gridHelper);
+
+        // Mapeamento de cores da legenda lateral
+        function obterCorHex(quantidadePessoas) {
             if (quantidadePessoas === 1) return 0x00FF00; // Verde
             if (quantidadePessoas === 2) return 0xFFFF00; // Amarelo
             if (quantidadePessoas === 3) return 0xFF0000; // Vermelho
             if (quantidadePessoas >= 4) return 0x800080;  // Roxo
-            return 0x555555;                              // Cinza/Preto padrão
+            return 0x333333;                              // Padrão
         }
 
-        // Exemplo de criação de rastro mais grosso
-        // No Three.js padrão, usamos LineBasicMaterial (limitado a 1px em alguns browsers) 
-        // ou Tubos/Planes para espessura real. Aqui usamos espessura simulada ou Shader/LineMaterial se aplicável:
-        function criarRastro(pontos, qtdPessoas) {
-            const geometry = new THREE.BufferGeometry().setFromPoints(pontos);
+        /**
+         * Cria uma faixa grossa (tipo rastro de mapa de calor) entre dois pontos no chão.
+         * @param {THREE.Vector3} p1 Ponto inicial
+         * @param {THREE.Vector3} p2 Ponto final
+         * @param {number} largura Espessura do rastro (tamanho proporcional à pessoa)
+         * @param {number} qtdPessoas Quantidade de pessoas para definir a cor
+         */
+        function adicionarRastroMapaCalor(p1, p2, largura, qtdPessoas) {
+            const distancia = p1.distanceTo(p2);
+            const direcao = new THREE.Vector3().subVectors(p2, p1);
             
-            // Se estiver usando LineMaterial do Three.js (addons/lines), você pode definir 'linewidth' em pixels.
-            // Exemplo genérico com material básico ajustado:
-            const cor = obterCorRastro(qtdPessoas);
-            const material = new THREE.LineBasicMaterial({ 
-                color: cor, 
-                linewidth: 5 // Nota: o WebGL limita nativamente a largura de linhas simples a 1px em muitos sistemas operacionais.
+            // Cria um plano (faixa) para simular o rastro volumoso
+            const geometry = new THREE.PlaneGeometry(largura, distancia);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: obterCorHex(qtdPessoas),
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.85
             });
 
-            const linha = new THREE.Line(geometry, material);
-            scene.add(linha);
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Posiciona no ponto médio entre p1 e p2
+            const meio = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+            mesh.position.set(meio.x, 0.01, meio.z); // Levemente acima do chão para evitar z-fighting
+
+            // Rotaciona o plano para deitar no chão e alinhar com a direção do movimento
+            mesh.rotation.x = Math.PI / 2;
+            
+            // Calcula o ângulo de orientação no plano XZ
+            const angulo = Math.atan2(direcao.x, direcao.z);
+            mesh.rotation.z = angulo;
+
+            scene.add(mesh);
         }
 
-        // Exemplo de uso para desenhar uma trajetória com 3 pessoas (Vermelho)
-        const pontosExemplo = [
-            new THREE.Vector3(-5, 0, -5),
-            new THREE.Vector3(0, 0, 2),
-            new THREE.Vector3(5, 0, 5)
-        ];
-        criarRastro(pontosExemplo, 3); // Vai pintar de vermelho e aplicar espessura
+        // --- EXEMPLOS DE TESTE DO MAPA DE CALOR ---
+        // Largura ajustada para parecer o tamanho de uma pessoa (~0.8 unidades)
+        const larguraPessoa = 0.8; 
 
-        // Loop de Animação
+        // Exemplo 1: Rastro com 1 pessoa (Verde)
+        adicionarRastroMapaCalor(
+            new THREE.Vector3(-4, 0, -3), 
+            new THREE.Vector3(-2, 0, 2), 
+            larguraPessoa, 1
+        );
+
+        // Exemplo 2: Rastro com 3 pessoas (Vermelho)
+        adicionarRastroMapaCalor(
+            new THREE.Vector3(-2, 0, 2), 
+            new THREE.Vector3(3, 0, 4), 
+            larguraPessoa, 3
+        );
+
+        // Exemplo 3: Rastro com 4+ pessoas (Roxo - Área de alto tráfego)
+        adicionarRastroMapaCalor(
+            new THREE.Vector3(3, 0, 4), 
+            new THREE.Vector3(5, 0, -2), 
+            larguraPessoa, 5
+        );
+
+        // Loop de Renderização
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
         animate();
 
-        // Ajustar tela ao redimensionar a janela
+        // Responsividade da tela
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
