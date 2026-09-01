@@ -290,24 +290,45 @@
       return null;                               // Preto - 0 pessoas
     }
 
-    function addHeatAtWorldPos(wx, wz) {
-      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
-      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
-      
-      const radius = 5; 
-      const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
-      const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
+    // Função de rastro contínuo (traça linha entre o ponto anterior e o atual)
+    function addLineHeatAtWorldPos(x0, z0, x1, z1) {
+      const cx0 = Math.floor(((x0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cy0 = Math.floor(((z0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cx1 = Math.floor(((x1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cy1 = Math.floor(((z1 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
 
-      for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-          const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
-          if (dist2 <= radius ** 2) {
-            const idx = y * HEATMAP_RES + x;
-            if (heatMapData[idx] < 4) {
-              heatMapData[idx]++;
+      const dx = Math.abs(cx1 - cx0);
+      const dy = Math.abs(cy1 - cy0);
+      const sx = (cx0 < cx1) ? 1 : -1;
+      const sy = (cy0 < cy1) ? 1 : -1;
+      let err = dx - dy;
+
+      let currX = cx0;
+      let currY = cy0;
+
+      const radius = 4; // Espessura do rastro contínuo
+
+      while (true) {
+        // Pinta a área ao redor de cada pixel da linha para dar espessura ao rastro
+        for (let ry = -radius; ry <= radius; ry++) {
+          for (let rx = -radius; rx <= radius; rx++) {
+            const px = currX + rx;
+            const py = currY + ry;
+            if (px >= 0 && px < HEATMAP_RES && py >= 0 && py < HEATMAP_RES) {
+              if (rx * rx + ry * ry <= radius * radius) {
+                const idx = py * HEATMAP_RES + px;
+                if (heatMapData[idx] < 4) {
+                  heatMapData[idx]++;
+                }
+              }
             }
           }
         }
+
+        if (currX === cx1 && currY === cy1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; currX += sx; }
+        if (e2 < dx) { err += dx; currY += sy; }
       }
     }
 
@@ -338,6 +359,9 @@
       let stepOccurred = false;
       pedestrians.forEach((agent) => {
         if (!isPaused) {
+          const oldX = agent.human.root.position.x;
+          const oldZ = agent.human.root.position.z;
+
           agent.human.root.position.x += agent.vx;
           agent.human.root.position.z += agent.vz;
 
@@ -368,11 +392,8 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          if (Math.hypot(currX - agent.lastPaintedX, currZ - agent.lastPaintedZ) > 1.2) {
-            addHeatAtWorldPos(currX, currZ);
-            agent.lastPaintedX = currX;
-            agent.lastPaintedZ = currZ;
-          }
+          // Cria o rastro contínuo conectando a posição anterior à atual
+          addLineHeatAtWorldPos(oldX, oldZ, currX, currZ);
 
           if (Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ) > 1.2) {
             agent.lastStepX = currX;
