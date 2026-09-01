@@ -18,10 +18,10 @@
     body, html { width: 100%; height: 100%; overflow: hidden; background-color: #08090d; font-family: 'Inter', sans-serif; color: #e2e8f0; }
     #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
     
-    /* Painel Esquerdo Original Limpo */
+    /* Painel Esquerdo */
     .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
     
-    /* Painel Flutuante na Direita para o Gráfico f(x) */
+    /* Painel Direito (Gráfico + Calculadora f(x)) */
     .hud-panel-right { position: absolute; top: 20px; right: 20px; z-index: 10; width: 340px; background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
 
     .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
@@ -50,6 +50,16 @@
     .btn:hover { background: #334155; color: #ffffff; }
     .btn-primary { background: #0284c7; border-color: #38bdf8; }
     .btn-primary:hover { background: #0369a1; }
+    
+    /* Estilos da Calculadora f(x) */
+    .calc-container { margin-top: 14px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); }
+    .calc-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+    .calc-row:last-child { margin-bottom: 0; }
+    .calc-label { font-size: 10px; color: #94a3b8; width: 65px; }
+    .calc-input { flex: 1; background: #0c1018; border: 1px solid #334155; color: #38bdf8; font-family: 'Orbitron', monospace; font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; }
+    .calc-input:focus { border-color: #38bdf8; }
+    .calc-result { font-size: 10px; color: #4ade80; font-family: 'Orbitron', monospace; width: 65px; text-align: right; }
+
     .hint-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 8px 18px; font-size: 11px; color: #94a3b8; display: flex; gap: 16px; pointer-events: none; }
     .hint-bar span { display: inline-flex; align-items: center; gap: 5px; }
     .hint-key { background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #fff; }
@@ -59,7 +69,6 @@
 
   <div id="canvas-container"></div>
 
-  <!-- Painel Esquerdo -->
   <div class="hud-panel">
     <div class="badge"><span class="badge-dot"></span> FECART • PIEZOELÉTRICA</div>
     <h1>Piso Gerador de Energia</h1>
@@ -88,10 +97,23 @@
     </div>
   </div>
 
-  <!-- Painel Direito - Gráfico f(x) Exponencial/Linear -->
   <div class="hud-panel-right">
-    <div class="section-title">Função f(x) - Crescimento Acumulado</div>
-    <canvas id="fxChart" width="300" height="180"></canvas>
+    <div class="section-title">Função f(x) - Crescimento Contínuo</div>
+    <canvas id="fxChart" width="300" height="150"></canvas>
+    
+    <div class="calc-container">
+      <div class="section-title" style="margin-bottom: 6px;">Calculadora f(x)</div>
+      <div class="calc-row">
+        <span class="calc-label">Tempo (x):</span>
+        <input type="number" id="input-time" class="calc-input" placeholder="Ex: 10" value="10">
+        <span class="calc-result" id="res-energy">0.0 J</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-label">Energia (f(x)):</span>
+        <input type="number" id="input-energy" class="calc-input" placeholder="Ex: 50" value="">
+        <span class="calc-result" id="res-time">x = --</span>
+      </div>
+    </div>
   </div>
 
   <div class="hint-bar">
@@ -343,14 +365,19 @@
       document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
     }
 
-    // Configuração do Gráfico f(x) - Curva Exponencial/Linear estável
+    // Função matemática f(x) oficial do simulador
+    function calcFX(x) {
+      return (x * 4.8 * 0.5) + Math.pow(1.08, x);
+    }
+
+    // Configuração do Gráfico f(x)
     const fxCtx = document.getElementById('fxChart').getContext('2d');
     const xPoints = [];
     const fxValues = [];
     
     for (let x = 0; x <= 10; x += 1) {
       xPoints.push(x);
-      fxValues.push(Math.pow(1.3, x));
+      fxValues.push(calcFX(x));
     }
 
     const fxChart = new Chart(fxCtx, {
@@ -358,7 +385,7 @@
       data: {
         labels: xPoints,
         datasets: [{
-          label: 'f(x) Crescimento',
+          label: 'f(x) Energia',
           data: fxValues,
           borderColor: '#38bdf8',
           backgroundColor: 'rgba(56, 189, 248, 0.1)',
@@ -372,8 +399,8 @@
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { title: { display: true, text: 'Eixo X (Tempo/Passadas)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-          y: { title: { display: true, text: 'f(x) Energia', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+          x: { title: { display: true, text: 'Tempo (x)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+          y: { title: { display: true, text: 'Energia f(x)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
         }
       }
     });
@@ -431,14 +458,13 @@
       document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
 
-      // Atualiza dinamicamente a função f(x) mantendo a janela deslizante estável
+      // Atualiza o gráfico continuamente sem quedas bruscas
       if (!isPaused && stepOccurred) {
         timeStep++;
         fxChart.data.labels.push(timeStep);
-        let fxVal = (totalJoules * 0.1) + Math.pow(1.15, timeStep % 20);
+        let fxVal = calcFX(timeStep);
         fxChart.data.datasets[0].data.push(fxVal);
 
-        // Mantém apenas os últimos 15 pontos para o gráfico nunca sumir da tela
         if (fxChart.data.labels.length > 15) {
           fxChart.data.labels.shift();
           fxChart.data.datasets[0].data.shift();
@@ -446,6 +472,44 @@
         fxChart.update('none');
       }
     }
+
+    // Lógica da Calculadora f(x) interativa abaixo do gráfico
+    const inputTime = document.getElementById('input-time');
+    const resEnergy = document.getElementById('res-energy');
+    const inputEnergy = document.getElementById('input-energy');
+    const resTime = document.getElementById('res-time');
+
+    inputTime.addEventListener('input', () => {
+      let t = parseFloat(inputTime.value);
+      if (isNaN(t)) {
+        resEnergy.innerText = '--- J';
+      } else {
+        let val = calcFX(t);
+        resEnergy.innerText = `${val.toFixed(1)} J`;
+      }
+    });
+
+    inputEnergy.addEventListener('input', () => {
+      let targetE = parseFloat(inputEnergy.value);
+      if (isNaN(targetE)) {
+        resTime.innerText = 'x = --';
+      } else {
+        // Busca aproximada do tempo x com base na energia desejada
+        let bestX = 0;
+        let minDiff = Infinity;
+        for (let x = 0; x <= 1000; x += 0.5) {
+          let diff = Math.abs(calcFX(x) - targetE);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestX = x;
+          }
+        }
+        resTime.innerText = `x ≈ ${bestX.toFixed(1)}`;
+      }
+    });
+
+    // Calcula os valores iniciais ao carregar a página
+    inputTime.dispatchEvent(new Event('input'));
 
     function animate() {
       requestAnimationFrame(animate);
@@ -474,7 +538,7 @@
       
       timeStep = 10;
       fxChart.data.labels = Array.from({length: 10}, (_, i) => i);
-      fxChart.data.datasets[0].data = Array.from({length: 10}, (_, i) => Math.pow(1.3, i));
+      fxChart.data.datasets[0].data = Array.from({length: 10}, (_, i) => calcFX(i));
       fxChart.update();
     });
 
