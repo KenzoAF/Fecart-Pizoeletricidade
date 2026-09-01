@@ -90,7 +90,7 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 8;
-    const HEATMAP_RES = 256; // Resolução ajustada para blocos mais limpos e definidos
+    const HEATMAP_RES = 512; // Retornado para a resolução alta para dar a largura correta do rastro
     const JOULES_PER_STEP = 4.8;
     
     let isPaused = false;
@@ -131,14 +131,13 @@
     dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
 
-    // Matriz exata de contagem por célula
+    // Matriz para guardar quantas vezes cada pixel foi visitado
     const heatMapData = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
     outputCanvas.height = HEATMAP_RES;
     const outputCtx = outputCanvas.getContext('2d');
-    outputCtx.imageSmoothingEnabled = false; // Desativa suavização para manter as cores sólidas sem gradiente
 
     const bgCanvas = document.createElement('canvas');
     bgCanvas.width = HEATMAP_RES;
@@ -164,8 +163,7 @@
     initFloorCanvas();
 
     const floorTexture = new THREE.CanvasTexture(outputCanvas);
-    floorTexture.magFilter = THREE.NearestFilter; // Mantém o pixel art/cores sólidas nítidas
-    floorTexture.minFilter = THREE.NearestFilter;
+    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshStandardMaterial({ map: floorTexture, roughness: 0.4, metalness: 0.1 });
@@ -263,7 +261,7 @@
       const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
       human.root.position.set(x, 0, z);
 
-      const speed = 0.05 + Math.random() * 0.03; // Velocidade um pouco mais controlada para registrar as passadas com precisão
+      const speed = 0.06 + Math.random() * 0.04;
       const angle = Math.random() * Math.PI * 2;
       const vx = Math.sin(angle) * speed;
       const vz = Math.cos(angle) * speed;
@@ -285,16 +283,12 @@
       pedestrians.push(agent);
     }
 
-    // Cores exatas solicitadas:
-    // 1 passagem = Verde puro
-    // 2 passagens = Amarelo puro
-    // 3 passagens = Vermelho puro
-    // 4+ passagens = Roxo puro
+    // Cores exatas para cada número de passagens:
     function getDiscreteColor(count) {
-      if (count === 1) return [0, 255, 102];    // Verde
-      if (count === 2) return [255, 234, 0];    // Amarelo
-      if (count === 3) return [255, 30, 30];    // Vermelho
-      if (count >= 4) return [128, 0, 128];     // Roxo
+      if (count === 1) return [0, 255, 102];    // 1 vez = Verde
+      if (count === 2) return [255, 234, 0];    // 2 vezes = Amarelo
+      if (count === 3) return [255, 30, 30];    // 3 vezes = Vermelho
+      if (count >= 4) return [128, 0, 128];     // 4 ou mais = Roxo
       return null;
     }
 
@@ -302,11 +296,21 @@
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       
-      if (cx >= 0 && cx < HEATMAP_RES && cy >= 0 && cy < HEATMAP_RES) {
-        const idx = cy * HEATMAP_RES + cx;
-        // Incrementa a contagem apenas se o agente se moveu para um pixel novo, evitando contagem excessiva no mesmo lugar
-        if (heatMapData[idx] < 10) {
-          heatMapData[idx]++;
+      // Raio 6 traz de volta a largura de rastro encorpada da foto anterior
+      const radius = 6; 
+      const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
+      const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
+
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
+          if (dist2 <= radius ** 2) {
+            const idx = y * HEATMAP_RES + x;
+            // Limita para incrementar apenas até 4 para garantir o controle exato das cores
+            if (heatMapData[idx] < 4) {
+              heatMapData[idx]++;
+            }
+          }
         }
       }
     }
@@ -368,8 +372,7 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          // Adiciona rastro de forma pontual a cada deslocamento mínimo
-          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.3) {
+          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.4) {
             addHeatAtWorldPos(currX, currZ);
             agent.lastX = currX;
             agent.lastZ = currZ;
