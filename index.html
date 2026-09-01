@@ -11,12 +11,14 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Adicionado Chart.js para o gráfico de f(x) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background-color: #08090d; font-family: 'Inter', sans-serif; color: #e2e8f0; }
     #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-    .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+    .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 380px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); max-height: calc(100vh - 40px); overflow-y: auto; }
     .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
     .badge-dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
@@ -38,6 +40,8 @@
     .metric-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); padding: 10px 12px; border-radius: 10px; }
     .metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
     .metric-value { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; color: #38bdf8; }
+    /* Estilo para o container do gráfico */
+    .chart-box { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; margin-bottom: 18px; }
     .controls-row { display: flex; gap: 8px; }
     .btn { flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn:hover { background: #334155; color: #ffffff; }
@@ -72,6 +76,12 @@
       <div class="metric-card"><div class="metric-label">Potência Inst.</div><div class="metric-value" id="val-watts" style="color: #4ade80;">0.0 W</div></div>
       <div class="metric-card"><div class="metric-label">Passadas Registradas</div><div class="metric-value" id="val-steps" style="color: #facc15;">0</div></div>
       <div class="metric-card"><div class="metric-label">Área Ativada</div><div class="metric-value" id="val-coverage" style="color: #f000ff;">0.0%</div></div>
+    </div>
+
+    <!-- Adicionado o Bloco do Gráfico f(x) -->
+    <div class="section-title">Gráfico f(x) - Potência vs Tempo</div>
+    <div class="chart-box">
+      <canvas id="realtimeChart"></canvas>
     </div>
 
     <div class="controls-row">
@@ -191,20 +201,17 @@
       const pantsMat = new THREE.MeshStandardMaterial({ color: palette.pants, roughness: 0.5 });
       const shoeMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.3 });
 
-      // Torso
       const torsoGeo = new THREE.CylinderGeometry(0.38, 0.28, 0.85, 12);
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
       torsoMesh.position.y = 1.35;
       torsoMesh.castShadow = true;
       humanGroup.add(torsoMesh);
 
-      // Cabeça
       const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
       headMesh.position.y = 2.0;
       headMesh.castShadow = true;
       humanGroup.add(headMesh);
 
-      // Pernas
       const legGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.85, 10);
       const shoeGeo = new THREE.BoxGeometry(0.16, 0.12, 0.32);
 
@@ -230,7 +237,6 @@
       rightLegPivot.add(rightLegMesh, rightShoe);
       humanGroup.add(rightLegPivot);
 
-      // Braços
       const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.75, 10);
       const leftArmPivot = new THREE.Group();
       leftArmPivot.position.set(-0.42, 1.65, 0);
@@ -333,6 +339,36 @@
       document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
     }
 
+    // Configuração do Gráfico Chart.js f(x)
+    const ctxChart = document.getElementById('realtimeChart').getContext('2d');
+    const realtimeChart = new Chart(ctxChart, {
+      type: 'line',
+      data: {
+        labels: Array(15).fill(''),
+        datasets: [{
+          label: 'f(x) Potência (W)',
+          data: Array(15).fill(0),
+          borderColor: '#4ade80',
+          backgroundColor: 'rgba(74, 222, 128, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { display: false } },
+          y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 9 } }, suggestedMax: 30 }
+        },
+        animation: false
+      }
+    });
+
+    let chartUpdateCounter = 0;
+
     function updateAgents() {
       let stepOccurred = false;
       pedestrians.forEach((agent) => {
@@ -383,6 +419,17 @@
       document.getElementById('val-joules').innerText = `${totalJoules.toFixed(1)} J`;
       document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
+
+      // Atualiza os dados do gráfico f(x) a cada X frames para manter fluidez
+      if (!isPaused) {
+        chartUpdateCounter++;
+        if (chartUpdateCounter > 10) {
+          realtimeChart.data.datasets[0].data.shift();
+          realtimeChart.data.datasets[0].data.push(instantaneousWatts);
+          realtimeChart.update();
+          chartUpdateCounter = 0;
+        }
+      }
     }
 
     function animate() {
@@ -409,6 +456,8 @@
       document.getElementById('val-watts').innerText = '0.0 W';
       document.getElementById('val-steps').innerText = '0';
       document.getElementById('val-coverage').innerText = '0.0%';
+      realtimeChart.data.datasets[0].data = Array(15).fill(0);
+      realtimeChart.update();
     });
 
     const btnPause = document.getElementById('btn-pause');
