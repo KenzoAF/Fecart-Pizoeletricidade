@@ -21,7 +21,7 @@
     /* Painel Esquerdo Original Limpo */
     .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
     
-    /* Novo Painel Flutuante na Direita para o Gráfico f(x) */
+    /* Painel Flutuante na Direita para o Gráfico f(x) */
     .hud-panel-right { position: absolute; top: 20px; right: 20px; z-index: 10; width: 340px; background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
 
     .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
@@ -343,15 +343,14 @@
       document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
     }
 
-    // Configuração do Gráfico f(x) - Curva Exponencial/Linear baseada em função matemática
+    // Configuração do Gráfico f(x) - Curva Exponencial/Linear estável
     const fxCtx = document.getElementById('fxChart').getContext('2d');
     const xPoints = [];
     const fxValues = [];
     
-    // Gerando pontos iniciais para uma função exponencial f(x) = e^x ou polinomial
     for (let x = 0; x <= 10; x += 1) {
       xPoints.push(x);
-      fxValues.push(Math.pow(1.3, x)); // Exemplo de crescimento exponencial suave
+      fxValues.push(Math.pow(1.3, x));
     }
 
     const fxChart = new Chart(fxCtx, {
@@ -364,7 +363,7 @@
           borderColor: '#38bdf8',
           backgroundColor: 'rgba(56, 189, 248, 0.1)',
           borderWidth: 2,
-          tension: 0.3, // Curva suave
+          tension: 0.3,
           fill: true,
           pointRadius: 2
         }]
@@ -432,19 +431,19 @@
       document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
 
-      // Atualiza dinamicamente a função f(x) exponencial com base na energia acumulada real
+      // Atualiza dinamicamente a função f(x) mantendo a janela deslizante estável
       if (!isPaused && stepOccurred) {
         timeStep++;
         fxChart.data.labels.push(timeStep);
-        // Exemplo de função f(x) combinando crescimento exponencial com a energia real gerada
         let fxVal = (totalJoules * 0.1) + Math.pow(1.15, timeStep % 20);
         fxChart.data.datasets[0].data.push(fxVal);
 
-        if (fxChart.data.labels.length > 12) {
+        // Mantém apenas os últimos 15 pontos para o gráfico nunca sumir da tela
+        if (fxChart.data.labels.length > 15) {
           fxChart.data.labels.shift();
           fxChart.data.datasets[0].data.shift();
         }
-        fxChart.update();
+        fxChart.update('none');
       }
     }
 
