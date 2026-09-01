@@ -290,7 +290,7 @@
       return null;                               // Preto - 0 pessoas
     }
 
-    // Função de rastro contínuo (traça linha entre o ponto anterior e o atual)
+    // Rastro contínuo mais fino para respeitar a progressão correta das cores
     function addLineHeatAtWorldPos(x0, z0, x1, z1) {
       const cx0 = Math.floor(((x0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy0 = Math.floor(((z0 + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
@@ -306,22 +306,11 @@
       let currX = cx0;
       let currY = cy0;
 
-      const radius = 4; // Espessura do rastro contínuo
-
       while (true) {
-        // Pinta a área ao redor de cada pixel da linha para dar espessura ao rastro
-        for (let ry = -radius; ry <= radius; ry++) {
-          for (let rx = -radius; rx <= radius; rx++) {
-            const px = currX + rx;
-            const py = currY + ry;
-            if (px >= 0 && px < HEATMAP_RES && py >= 0 && py < HEATMAP_RES) {
-              if (rx * rx + ry * ry <= radius * radius) {
-                const idx = py * HEATMAP_RES + px;
-                if (heatMapData[idx] < 4) {
-                  heatMapData[idx]++;
-                }
-              }
-            }
+        if (currX >= 0 && currX < HEATMAP_RES && currY >= 0 && currY < HEATMAP_RES) {
+          const idx = currY * HEATMAP_RES + currX;
+          if (heatMapData[idx] < 4) {
+            heatMapData[idx]++; // Incrementa suavemente a cada passagem por cima do pixel
           }
         }
 
@@ -392,7 +381,6 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          // Cria o rastro contínuo conectando a posição anterior à atual
           addLineHeatAtWorldPos(oldX, oldZ, currX, currZ);
 
           if (Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ) > 1.2) {
