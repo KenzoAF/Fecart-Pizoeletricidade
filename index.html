@@ -90,7 +90,7 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 8;
-    const HEATMAP_RES = 512;
+    const HEATMAP_RES = 256; // Resolução ajustada para blocos mais limpos e definidos
     const JOULES_PER_STEP = 4.8;
     
     let isPaused = false;
@@ -131,13 +131,14 @@
     dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
 
-    // Mudança: matriz de inteiros para contar visitas exatas por pixel
-    const heatMapData = new Uint16Array(HEATMAP_RES * HEATMAP_RES);
+    // Matriz exata de contagem por célula
+    const heatMapData = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
     outputCanvas.height = HEATMAP_RES;
     const outputCtx = outputCanvas.getContext('2d');
+    outputCtx.imageSmoothingEnabled = false; // Desativa suavização para manter as cores sólidas sem gradiente
 
     const bgCanvas = document.createElement('canvas');
     bgCanvas.width = HEATMAP_RES;
@@ -163,7 +164,8 @@
     initFloorCanvas();
 
     const floorTexture = new THREE.CanvasTexture(outputCanvas);
-    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    floorTexture.magFilter = THREE.NearestFilter; // Mantém o pixel art/cores sólidas nítidas
+    floorTexture.minFilter = THREE.NearestFilter;
 
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
     const floorMat = new THREE.MeshStandardMaterial({ map: floorTexture, roughness: 0.4, metalness: 0.1 });
@@ -261,27 +263,38 @@
       const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
       human.root.position.set(x, 0, z);
 
-      const speed = 0.07 + Math.random() * 0.04;
+      const speed = 0.05 + Math.random() * 0.03; // Velocidade um pouco mais controlada para registrar as passadas com precisão
       const angle = Math.random() * Math.PI * 2;
       const vx = Math.sin(angle) * speed;
       const vz = Math.cos(angle) * speed;
 
       scene.add(human.root);
-      const agent = { id: i, human: human, vx: vx, vz: vz, speed: speed, walkCycle: Math.random() * Math.PI * 2, lastStepX: x, lastStepZ: z };
+      const agent = { 
+        id: i, 
+        human: human, 
+        vx: vx, 
+        vz: vz, 
+        speed: speed, 
+        walkCycle: Math.random() * Math.PI * 2, 
+        lastX: x, 
+        lastZ: z,
+        lastStepX: x, 
+        lastStepZ: z 
+      };
       updateHumanRotation(agent);
       pedestrians.push(agent);
     }
 
-    // Regra exata de cores solicitada:
-    // 1 passagem = Verde (#00ff66)
-    // 2 passagens = Amarelo (#ffea00)
-    // 3 passagens = Vermelho (#ff1e1e)
-    // 4 ou mais passagens = Roxo (#800080)
-    function getDiscreteHeatColor(count) {
-      if (count === 1) return [0, 255, 102];   // Verde
-      if (count === 2) return [255, 234, 0];   // Amarelo
-      if (count === 3) return [255, 30, 30];   // Vermelho
-      if (count >= 4) return [128, 0, 128];    // Roxo
+    // Cores exatas solicitadas:
+    // 1 passagem = Verde puro
+    // 2 passagens = Amarelo puro
+    // 3 passagens = Vermelho puro
+    // 4+ passagens = Roxo puro
+    function getDiscreteColor(count) {
+      if (count === 1) return [0, 255, 102];    // Verde
+      if (count === 2) return [255, 234, 0];    // Amarelo
+      if (count === 3) return [255, 30, 30];    // Vermelho
+      if (count >= 4) return [128, 0, 128];     // Roxo
       return null;
     }
 
@@ -289,17 +302,11 @@
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       
-      const radius = 4; // Raio pontual para registrar a pisada
-      const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
-      const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
-
-      for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-          const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
-          if (dist2 <= radius ** 2) {
-            const idx = y * HEATMAP_RES + x;
-            heatMapData[idx]++; // Incrementa o número de visitas na célula
-          }
+      if (cx >= 0 && cx < HEATMAP_RES && cy >= 0 && cy < HEATMAP_RES) {
+        const idx = cy * HEATMAP_RES + cx;
+        // Incrementa a contagem apenas se o agente se moveu para um pixel novo, evitando contagem excessiva no mesmo lugar
+        if (heatMapData[idx] < 10) {
+          heatMapData[idx]++;
         }
       }
     }
@@ -313,11 +320,11 @@
         const count = heatMapData[i];
         if (count > 0) {
           activePixels++;
-          const col = getDiscreteHeatColor(count);
+          const col = getDiscreteColor(count);
           if (col) {
             const pIdx = i * 4;
-            data[pIdx] = col[0]; 
-            data[pIdx + 1] = col[1]; 
+            data[pIdx] = col[0];
+            data[pIdx + 1] = col[1];
             data[pIdx + 2] = col[2];
           }
         }
@@ -361,7 +368,12 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          addHeatAtWorldPos(currX, currZ);
+          // Adiciona rastro de forma pontual a cada deslocamento mínimo
+          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.3) {
+            addHeatAtWorldPos(currX, currZ);
+            agent.lastX = currX;
+            agent.lastZ = currZ;
+          }
 
           if (Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ) > 1.2) {
             agent.lastStepX = currX;
