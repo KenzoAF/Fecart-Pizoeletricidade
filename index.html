@@ -216,7 +216,7 @@
 
   <div class="tab-container">
     
-    <!-- ABA 1: Simulação Original com Rastros Térmicos e Sem Bonecos -->
+    <!-- ABA 1: Simulação com Bonecos Visíveis e Rastros Coloridos -->
     <div id="simulacao" class="tab-content active">
       <div class="sim-layout">
         <div class="sidebar">
@@ -239,19 +239,19 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div class="card-metric">
               <span>Energia Acumulada</span>
-              <h3 id="energia-val">120.0 J</h3>
+              <h3 id="energia-val">1524.4 J</h3>
             </div>
             <div class="card-metric">
               <span>Potência Inst.</span>
-              <h3 id="potencia-val">45.0 W</h3>
+              <h3 id="potencia-val">51.1 W</h3>
             </div>
             <div class="card-metric">
               <span>Passadas</span>
-              <h3 id="passadas-val">50</h3>
+              <h3 id="passadas-val">327</h3>
             </div>
             <div class="card-metric">
               <span>Área Ativada</span>
-              <h3 id="area-val">15.2%</h3>
+              <h3 id="area-val">20.5%</h3>
             </div>
           </div>
 
@@ -267,28 +267,28 @@
       <div class="explain-container">
         <div class="explain-header">
           <h2>Arquitetura do Projeto Físico</h2>
-          <p>Clique nos cards abaixo para entender como cada componente atua na conversão da energia dos passos[cite: 2].</p>
+          <p>Clique nos cards abaixo para entender como cada componente atua na conversão da energia dos passos.</p>
         </div>
 
         <div class="explain-grid">
-          <div class="explain-card" onclick="alert('Superfície de Impacto: Camada superior em polímero resistente que recebe diretamente o peso e o atrito dos passos[cite: 2].')">
+          <div class="explain-card" onclick="alert('Superfície de Impacto: Camada superior em polímero resistente que recebe diretamente o peso e o atrito dos passos.')">
             <h3>1. Superfície de Impacto</h3>
-            <p>Placa protetora que recebe a pressão direta dos passos[cite: 2] e distribui a força.</p>
+            <p>Placa protetora que recebe a pressão direta dos passos e distribui a força.</p>
           </div>
 
-          <div class="explain-card" onclick="alert('Pastilhas PZT: O coração do sistema. Cristais que convertem deformação mecânica em tensão elétrica[cite: 2].')">
+          <div class="explain-card" onclick="alert('Pastilhas PZT: O coração do sistema. Cristais que convertem deformação mecânica em tensão elétrica.')">
             <h3>2. Pastilhas Piezoelétricas (PZT)</h3>
-            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica[cite: 2].</p>
+            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica.</p>
           </div>
 
-          <div class="explain-card" onclick="alert('Ponte Retificadora: Converte a corrente alternada (AC) gerada pelos cristais em corrente contínua (DC) estável[cite: 2].')">
+          <div class="explain-card" onclick="alert('Ponte Retificadora: Converte a corrente alternada (AC) gerada pelos cristais em corrente contínua (DC) estável.')">
             <h3>3. Ponte Retificadora / Circuito</h3>
-            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem[cite: 2].</p>
+            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem.</p>
           </div>
 
-          <div class="explain-card" onclick="alert('Supercapacitores/Bateria: Armazenam de forma eficiente a energia capturada para uso posterior[cite: 2].')">
+          <div class="explain-card" onclick="alert('Supercapacitores/Bateria: Armazenam de forma eficiente a energia capturada para uso posterior.')">
             <h3>4. Bateria / Supercapacitor</h3>
-            <p>Armazena a energia acumulada pelas passadas[cite: 2] diárias.</p>
+            <p>Armazena a energia acumulada pelas passadas diárias.</p>
           </div>
         </div>
       </div>
@@ -312,8 +312,8 @@
       }
     }
 
-    let contadorPassadas = 50;
-    let energiaAcumulada = 120.0;
+    let contadorPassadas = 327;
+    let energiaAcumulada = 1524.4;
 
     function reiniciarSimulacao() {
       contadorPassadas = 0;
@@ -324,7 +324,7 @@
       document.getElementById('area-val').innerText = '0.0%';
     }
 
-    // --- Simulação 3D com Rastros Térmicos (Sem Bonecos) ---
+    // --- Simulação 3D com Bonequinhos Visíveis e Rastros Coloridos ---
     function initMapSimulation() {
       const container = document.getElementById('canvas-container-map');
       const scene = new THREE.Scene();
@@ -355,13 +355,31 @@
       const simulationGroup = new THREE.Group();
       scene.add(simulationGroup);
 
-      // Agentes invisíveis gerando apenas os rastros com progressão de cores
-      const agents = [
-        { x: -3, z: -3, vx: 0.04, vz: 0.03, color: 0x22c55e }, // Verde (Baixo)
-        { x: 3, z: 2, vx: -0.03, vz: 0.05, color: 0xeab308 },  // Amarelo (Médio)
-        { x: 0, z: -4, vx: 0.02, vz: -0.04, color: 0xef4444 }, // Vermelho (Alto)
-        { x: -2, z: 4, vx: 0.03, vz: -0.02, color: 0xa855f7 }  // Roxo (Intenso)
-      ];
+      // Cores da escala térmica: Verde, Amarelo, Vermelho, Roxo
+      const trafficColors = [0x22c55e, 0xeab308, 0xef4444, 0xa855f7]; 
+      const agents = [];
+
+      for (let i = 0; i < 5; i++) {
+        const color = trafficColors[i % trafficColors.length];
+        const agent = {
+          x: (Math.random() - 0.5) * 10,
+          z: (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 0.05,
+          vz: (Math.random() - 0.5) * 0.05,
+          color: color,
+          mesh: null
+        };
+
+        // Bonequinho com tamanho bem visível sobre o piso
+        const personGeo = new THREE.CylinderGeometry(0.25, 0.25, 1.2, 12);
+        const personMat = new THREE.MeshBasicMaterial({ color: color });
+        const personMesh = new THREE.Mesh(personGeo, personMat);
+        personMesh.position.set(agent.x, 0.6, agent.z);
+        simulationGroup.add(personMesh);
+        agent.mesh = personMesh;
+
+        agents.push(agent);
+      }
 
       function animateMap() {
         requestAnimationFrame(animateMap);
@@ -374,8 +392,11 @@
           if (agent.x > 6 || agent.x < -6) agent.vx *= -1;
           if (agent.z > 6 || agent.z < -6) agent.vz *= -1;
 
-          // Criação dos blocos de rastro coloridos sem os bonecos
-          if (Math.random() < 0.4) {
+          // Atualiza a posição do bonequinho visível
+          agent.mesh.position.set(agent.x, 0.6, agent.z);
+
+          // O boneco deixa o rastro da cor correspondente no piso
+          if (Math.random() < 0.35) {
             const trailGeo = new THREE.BoxGeometry(0.35, 0.06, 0.35);
             const trailMat = new THREE.MeshBasicMaterial({ color: agent.color });
             const trail = new THREE.Mesh(trailGeo, trailMat);
