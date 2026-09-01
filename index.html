@@ -1,143 +1,411 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Simulação de Piso Piezelétrico - FECART</title>
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; font-family: sans-serif; color: white; }
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 280px;
-            background: rgba(15, 20, 30, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        h2 { font-size: 16px; margin-bottom: 5px; color: #00d2ff; }
-        p { font-size: 12px; color: #aaa; }
-        .legenda-item { display: flex; align-items: center; margin: 6px 0; font-size: 13px; }
-        .cor-box { width: 14px; height: 14px; display: inline-block; margin-right: 8px; border-radius: 3px; }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulação de Piso Piezoelétrico - FECART</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #0b0e14;
+      color: #ffffff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Barra de Navegação */
+    .nav-tabs {
+      display: flex;
+      gap: 12px;
+      background-color: #161b22;
+      padding: 12px 24px;
+      border-bottom: 1px solid #30363d;
+      z-index: 100;
+    }
+
+    .tab-btn {
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: #30363d;
+      color: #ffffff;
+    }
+
+    .tab-btn.active {
+      background: #1f6feb;
+      color: #ffffff;
+      border-color: #388bfd;
+    }
+
+    /* Container de Abas */
+    .tab-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 57px);
+    }
+
+    .tab-content {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Layout da Simulação */
+    .sim-layout {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      background: #0b0e14;
+    }
+
+    .sidebar {
+      width: 320px;
+      background: #11151c;
+      border-right: 1px solid #30363d;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .main-canvas-area {
+      flex: 1;
+      position: relative;
+      background: #0b0e14;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.4;
+    }
+
+    .card-metric {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .card-metric span {
+      font-size: 10px;
+      color: #8b949e;
+      text-transform: uppercase;
+    }
+
+    .card-metric h3 {
+      font-size: 20px;
+      color: #58a6ff;
+      margin-top: 2px;
+    }
+
+    .btn-action {
+      background: #1f6feb;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-action:hover {
+      background: #388bfd;
+    }
+
+    /* Layout da Página do Projeto Físico */
+    .explain-container {
+      width: 100%;
+      height: 100%;
+      background: #0d1117;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .explain-header {
+      max-width: 900px;
+      margin: 0 auto 30px auto;
+    }
+
+    .explain-header h2 {
+      font-size: 28px;
+      color: #58a6ff;
+      margin-bottom: 8px;
+    }
+
+    .explain-header p {
+      color: #8b949e;
+      font-size: 14px;
+    }
+
+    .explain-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .explain-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .explain-card:hover {
+      border-color: #58a6ff;
+      transform: translateY(-3px);
+    }
+
+    .explain-card h3 {
+      color: #58a6ff;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .explain-card p {
+      color: #c9d1d9;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+
+  <!-- Biblioteca Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-    <div id="ui">
-        <h2>Piso Gerador de Energia</h2>
-        <p>Conversão mecânica-elétrica via efeito piezoelétrico.</p>
-        <hr style="border:0; border-top:1px solid #333; margin:12px 0;">
-        <strong>Escala de Tráfego</strong>
-        <div class="legenda-item"><span class="cor-box" style="background:#00FF00;"></span> Verde (1 pessoa)</div>
-        <div class="legenda-item"><span class="cor-box" style="background:#FFFF00;"></span> Amarelo (2 pessoas)</div>
-        <div class="legenda-item"><span class="cor-box" style="background:#FF0000;"></span> Vermelho (3 pessoas)</div>
-        <div class="legenda-item"><span class="cor-box" style="background:#800080;"></span> Roxo (4+ pessoas)</div>
+  <!-- Menu de Navegação Superior -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D (Mapa de Calor)</button>
+    <button class="tab-btn" onclick="openTab(event, 'hardware')">Modelo 3D do Projeto Físico</button>
+  </nav>
+
+  <div class="tab-container">
+    
+    <!-- ABA 1: Simulação Original com Rastros Térmicos e Sem Bonecos -->
+    <div id="simulacao" class="tab-content active">
+      <div class="sim-layout">
+        <div class="sidebar">
+          <div>
+            <div style="background: #1f6feb; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">FECART - PIEZOELÉTRICA</div>
+            <div class="panel-title">Piso Gerador de Energia</div>
+            <div class="panel-subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</div>
+          </div>
+
+          <div style="background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d;">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px;">Escala Térmica de Tráfego</div>
+            <div style="font-size: 11px; color: #8b949e; display: flex; flex-direction: column; gap: 4px;">
+              <div>🟩 Tráfego Baixo (Verde)</div>
+              <div>🟨 Tráfego Médio (Amarelo)</div>
+              <div>🟥 Tráfego Alto (Vermelho)</div>
+              <div>🟪 Tráfego Intenso (Roxo)</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="card-metric">
+              <span>Energia Acumulada</span>
+              <h3 id="energia-val">120.0 J</h3>
+            </div>
+            <div class="card-metric">
+              <span>Potência Inst.</span>
+              <h3 id="potencia-val">45.0 W</h3>
+            </div>
+            <div class="card-metric">
+              <span>Passadas</span>
+              <h3 id="passadas-val">50</h3>
+            </div>
+            <div class="card-metric">
+              <span>Área Ativada</span>
+              <h3 id="area-val">15.2%</h3>
+            </div>
+          </div>
+
+          <button class="btn-action" onclick="reiniciarSimulacao()">Reiniciar Mapa</button>
+        </div>
+
+        <div class="main-canvas-area" id="canvas-container-map"></div>
+      </div>
     </div>
 
-    <script>
-        // Configuração da Cena 3D
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 18, 20);
-        camera.lookAt(0, 0, 0);
+    <!-- ABA 2: Projeto Físico Interativo -->
+    <div id="hardware" class="tab-content">
+      <div class="explain-container">
+        <div class="explain-header">
+          <h2>Arquitetura do Projeto Físico</h2>
+          <p>Clique nos cards abaixo para entender como cada componente atua na conversão da energia dos passos[cite: 2].</p>
+        </div>
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        <div class="explain-grid">
+          <div class="explain-card" onclick="alert('Superfície de Impacto: Camada superior em polímero resistente que recebe diretamente o peso e o atrito dos passos[cite: 2].')">
+            <h3>1. Superfície de Impacto</h3>
+            <p>Placa protetora que recebe a pressão direta dos passos[cite: 2] e distribui a força.</p>
+          </div>
 
-        // Luzes
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambientLight);
+          <div class="explain-card" onclick="alert('Pastilhas PZT: O coração do sistema. Cristais que convertem deformação mecânica em tensão elétrica[cite: 2].')">
+            <h3>2. Pastilhas Piezoelétricas (PZT)</h3>
+            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica[cite: 2].</p>
+          </div>
 
-        // Adicionar um piso de fundo quadriculado discreto para referência
-        const gridHelper = new THREE.GridHelper(20, 20, 0x222222, 0x111111);
-        gridHelper.position.y = -0.01;
-        scene.add(gridHelper);
+          <div class="explain-card" onclick="alert('Ponte Retificadora: Converte a corrente alternada (AC) gerada pelos cristais em corrente contínua (DC) estável[cite: 2].')">
+            <h3>3. Ponte Retificadora / Circuito</h3>
+            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem[cite: 2].</p>
+          </div>
 
-        // Mapeamento de cores da legenda lateral
-        function obterCorHex(quantidadePessoas) {
-            if (quantidadePessoas === 1) return 0x00FF00; // Verde
-            if (quantidadePessoas === 2) return 0xFFFF00; // Amarelo
-            if (quantidadePessoas === 3) return 0xFF0000; // Vermelho
-            if (quantidadePessoas >= 4) return 0x800080;  // Roxo
-            return 0x333333;                              // Padrão
-        }
+          <div class="explain-card" onclick="alert('Supercapacitores/Bateria: Armazenam de forma eficiente a energia capturada para uso posterior[cite: 2].')">
+            <h3>4. Bateria / Supercapacitor</h3>
+            <p>Armazena a energia acumulada pelas passadas[cite: 2] diárias.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        /**
-         * Cria uma faixa grossa (tipo rastro de mapa de calor) entre dois pontos no chão.
-         * @param {THREE.Vector3} p1 Ponto inicial
-         * @param {THREE.Vector3} p2 Ponto final
-         * @param {number} largura Espessura do rastro (tamanho proporcional à pessoa)
-         * @param {number} qtdPessoas Quantidade de pessoas para definir a cor
-         */
-        function adicionarRastroMapaCalor(p1, p2, largura, qtdPessoas) {
-            const distancia = p1.distanceTo(p2);
-            const direcao = new THREE.Vector3().subVectors(p2, p1);
-            
-            // Cria um plano (faixa) para simular o rastro volumoso
-            const geometry = new THREE.PlaneGeometry(largura, distancia);
-            const material = new THREE.MeshBasicMaterial({ 
-                color: obterCorHex(qtdPessoas),
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.85
-            });
+  </div>
 
-            const mesh = new THREE.Mesh(geometry, material);
-            
-            // Posiciona no ponto médio entre p1 e p2
-            const meio = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
-            mesh.position.set(meio.x, 0.01, meio.z); // Levemente acima do chão para evitar z-fighting
+  <script>
+    function openTab(evt, tabName) {
+      const contents = document.querySelectorAll('.tab-content');
+      contents.forEach(content => content.classList.remove('active'));
 
-            // Rotaciona o plano para deitar no chão e alinhar com a direção do movimento
-            mesh.rotation.x = Math.PI / 2;
-            
-            // Calcula o ângulo de orientação no plano XZ
-            const angulo = Math.atan2(direcao.x, direcao.z);
-            mesh.rotation.z = angulo;
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
 
-            scene.add(mesh);
-        }
+      document.getElementById(tabName).classList.add('active');
+      evt.currentTarget.classList.add('active');
 
-        // --- EXEMPLOS DE TESTE DO MAPA DE CALOR ---
-        // Largura ajustada para parecer o tamanho de uma pessoa (~0.8 unidades)
-        const larguraPessoa = 0.8; 
+      if (tabName === 'simulacao') {
+        window.dispatchEvent(new Event('resize'));
+      }
+    }
 
-        // Exemplo 1: Rastro com 1 pessoa (Verde)
-        adicionarRastroMapaCalor(
-            new THREE.Vector3(-4, 0, -3), 
-            new THREE.Vector3(-2, 0, 2), 
-            larguraPessoa, 1
-        );
+    let contadorPassadas = 50;
+    let energiaAcumulada = 120.0;
 
-        // Exemplo 2: Rastro com 3 pessoas (Vermelho)
-        adicionarRastroMapaCalor(
-            new THREE.Vector3(-2, 0, 2), 
-            new THREE.Vector3(3, 0, 4), 
-            larguraPessoa, 3
-        );
+    function reiniciarSimulacao() {
+      contadorPassadas = 0;
+      energiaAcumulada = 0;
+      document.getElementById('energia-val').innerText = '0.0 J';
+      document.getElementById('potencia-val').innerText = '0.0 W';
+      document.getElementById('passadas-val').innerText = '0';
+      document.getElementById('area-val').innerText = '0.0%';
+    }
 
-        // Exemplo 3: Rastro com 4+ pessoas (Roxo - Área de alto tráfego)
-        adicionarRastroMapaCalor(
-            new THREE.Vector3(3, 0, 4), 
-            new THREE.Vector3(5, 0, -2), 
-            larguraPessoa, 5
-        );
+    // --- Simulação 3D com Rastros Térmicos (Sem Bonecos) ---
+    function initMapSimulation() {
+      const container = document.getElementById('canvas-container-map');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0e14);
 
-        // Loop de Renderização
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-        animate();
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, 16, 14);
 
-        // Responsividade da tela
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(10, 20, 10);
+      scene.add(light);
+
+      // Grid do Piso
+      const gridGeo = new THREE.PlaneGeometry(14, 14, 25, 25);
+      const gridMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, wireframe: true });
+      const gridMesh = new THREE.Mesh(gridGeo, gridMat);
+      gridMesh.rotation.x = -Math.PI / 2;
+      scene.add(gridMesh);
+
+      const simulationGroup = new THREE.Group();
+      scene.add(simulationGroup);
+
+      // Agentes invisíveis gerando apenas os rastros com progressão de cores
+      const agents = [
+        { x: -3, z: -3, vx: 0.04, vz: 0.03, color: 0x22c55e }, // Verde (Baixo)
+        { x: 3, z: 2, vx: -0.03, vz: 0.05, color: 0xeab308 },  // Amarelo (Médio)
+        { x: 0, z: -4, vx: 0.02, vz: -0.04, color: 0xef4444 }, // Vermelho (Alto)
+        { x: -2, z: 4, vx: 0.03, vz: -0.02, color: 0xa855f7 }  // Roxo (Intenso)
+      ];
+
+      function animateMap() {
+        requestAnimationFrame(animateMap);
+        controls.update();
+
+        agents.forEach(agent => {
+          agent.x += agent.vx;
+          agent.z += agent.vz;
+
+          if (agent.x > 6 || agent.x < -6) agent.vx *= -1;
+          if (agent.z > 6 || agent.z < -6) agent.vz *= -1;
+
+          // Criação dos blocos de rastro coloridos sem os bonecos
+          if (Math.random() < 0.4) {
+            const trailGeo = new THREE.BoxGeometry(0.35, 0.06, 0.35);
+            const trailMat = new THREE.MeshBasicMaterial({ color: agent.color });
+            const trail = new THREE.Mesh(trailGeo, trailMat);
+            trail.position.set(agent.x, 0.02, agent.z);
+            simulationGroup.add(trail);
+
+            contadorPassadas += 0.05;
+            energiaAcumulada += 0.2;
+            document.getElementById('passadas-val').innerText = Math.floor(contadorPassadas);
+            document.getElementById('energia-val').innerText = energiaAcumulada.toFixed(1) + ' J';
+            document.getElementById('potencia-val').innerText = (Math.random() * 10 + 42).toFixed(1) + ' W';
+          }
         });
-    </script>
+
+        renderer.render(scene, camera);
+      }
+      animateMap();
+
+      window.addEventListener('resize', () => {
+        if(container.clientWidth > 0) {
+          camera.aspect = container.clientWidth / container.clientHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+      });
+    }
+
+    window.onload = function() {
+      initMapSimulation();
+    };
+  </script>
 </body>
 </html>
