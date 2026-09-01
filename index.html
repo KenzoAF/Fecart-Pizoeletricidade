@@ -52,13 +52,16 @@
     .btn-primary:hover { background: #0369a1; }
     
     /* Estilos da Calculadora f(x) */
-    .calc-container { margin-top: 14px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); }
-    .calc-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
-    .calc-row:last-child { margin-bottom: 0; }
-    .calc-label { font-size: 10px; color: #94a3b8; width: 65px; }
+    .calc-container { margin-top: 12px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); }
+    .calc-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .calc-row:last-of-type { margin-bottom: 8px; }
+    .calc-label { font-size: 10px; color: #94a3b8; width: 68px; }
     .calc-input { flex: 1; background: #0c1018; border: 1px solid #334155; color: #38bdf8; font-family: 'Orbitron', monospace; font-size: 11px; padding: 4px 8px; border-radius: 6px; outline: none; }
     .calc-input:focus { border-color: #38bdf8; }
     .calc-result { font-size: 10px; color: #4ade80; font-family: 'Orbitron', monospace; width: 65px; text-align: right; }
+    .calc-btn-row { display: flex; gap: 6px; }
+    .calc-btn { flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; text-align: center; }
+    .calc-btn:hover { background: #334155; color: #fff; }
 
     .hint-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 8px 18px; font-size: 11px; color: #94a3b8; display: flex; gap: 16px; pointer-events: none; }
     .hint-bar span { display: inline-flex; align-items: center; gap: 5px; }
@@ -104,14 +107,18 @@
     <div class="calc-container">
       <div class="section-title" style="margin-bottom: 6px;">Calculadora f(x)</div>
       <div class="calc-row">
-        <span class="calc-label">Tempo (x):</span>
+        <span class="calc-label">Tempo (s):</span>
         <input type="number" id="input-time" class="calc-input" placeholder="Ex: 10" value="10">
         <span class="calc-result" id="res-energy">0.0 J</span>
       </div>
       <div class="calc-row">
-        <span class="calc-label">Energia (f(x)):</span>
+        <span class="calc-label">Energia:</span>
         <input type="number" id="input-energy" class="calc-input" placeholder="Ex: 50" value="">
-        <span class="calc-result" id="res-time">x = --</span>
+        <span class="calc-result" id="res-time">t = -- s</span>
+      </div>
+      <div class="calc-btn-row">
+        <button class="calc-btn" id="btn-reset-chart">🔄 Zerar Gráfico</button>
+        <button class="calc-btn" id="btn-pause-chart">⏸️ Pausar Gráfico</button>
       </div>
     </div>
   </div>
@@ -130,6 +137,7 @@
     const JOULES_PER_STEP = 4.8;
     
     let isPaused = false;
+    let isChartPaused = false;
     let totalJoules = 0;
     let totalSteps = 0;
     let instantaneousWatts = 0;
@@ -365,7 +373,7 @@
       document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
     }
 
-    // Função matemática f(x) oficial do simulador
+    // Função matemática f(x) oficial (onde x representa Segundos)
     function calcFX(x) {
       return (x * 4.8 * 0.5) + Math.pow(1.08, x);
     }
@@ -399,7 +407,7 @@
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { title: { display: true, text: 'Tempo (x)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+          x: { title: { display: true, text: 'Tempo (segundos)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
           y: { title: { display: true, text: 'Energia f(x)', color: '#64748b', font: { size: 9 } }, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
         }
       }
@@ -458,8 +466,8 @@
       document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
 
-      // Atualiza o gráfico continuamente sem quedas bruscas
-      if (!isPaused && stepOccurred) {
+      // Atualiza o gráfico continuamente sem quedas bruscas (caso não esteja pausado no gráfico)
+      if (!isPaused && !isChartPaused && stepOccurred) {
         timeStep++;
         fxChart.data.labels.push(timeStep);
         let fxVal = calcFX(timeStep);
@@ -473,7 +481,7 @@
       }
     }
 
-    // Lógica da Calculadora f(x) interativa abaixo do gráfico
+    // Lógica da Calculadora f(x) interativa em segundos
     const inputTime = document.getElementById('input-time');
     const resEnergy = document.getElementById('res-energy');
     const inputEnergy = document.getElementById('input-energy');
@@ -492,9 +500,8 @@
     inputEnergy.addEventListener('input', () => {
       let targetE = parseFloat(inputEnergy.value);
       if (isNaN(targetE)) {
-        resTime.innerText = 'x = --';
+        resTime.innerText = 't = -- s';
       } else {
-        // Busca aproximada do tempo x com base na energia desejada
         let bestX = 0;
         let minDiff = Infinity;
         for (let x = 0; x <= 1000; x += 0.5) {
@@ -504,12 +511,26 @@
             bestX = x;
           }
         }
-        resTime.innerText = `x ≈ ${bestX.toFixed(1)}`;
+        resTime.innerText = `t ≈ ${bestX.toFixed(1)}s`;
       }
     });
 
-    // Calcula os valores iniciais ao carregar a página
     inputTime.dispatchEvent(new Event('input'));
+
+    // Botões específicos de controle do gráfico
+    const btnResetChart = document.getElementById('btn-reset-chart');
+    btnResetChart.addEventListener('click', () => {
+      timeStep = 10;
+      fxChart.data.labels = Array.from({length: 10}, (_, i) => i);
+      fxChart.data.datasets[0].data = Array.from({length: 10}, (_, i) => calcFX(i));
+      fxChart.update();
+    });
+
+    const btnPauseChart = document.getElementById('btn-pause-chart');
+    btnPauseChart.addEventListener('click', () => {
+      isChartPaused = !isChartPaused;
+      btnPauseChart.innerHTML = isChartPaused ? '▶️ Retomar Gráfico' : '⏸️ Pausar Gráfico';
+    });
 
     function animate() {
       requestAnimationFrame(animate);
