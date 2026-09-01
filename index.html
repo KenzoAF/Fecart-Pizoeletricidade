@@ -14,20 +14,20 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background-color: #08090d; font-family: 'Inter', sans-serif; color: #e2e8f0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000000; font-family: 'Inter', sans-serif; color: #e2e8f0; }
     #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-    .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+    .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 380px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
     .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
     .badge-dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
     h1 { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
     p.subtitle { font-size: 12px; color: #94a3b8; line-height: 1.4; margin-bottom: 16px; }
     .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
-    .legend-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .legend-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); }
     .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
     .legend-color-box { display: flex; align-items: center; gap: 8px; }
     .color-swatch { width: 14px; height: 14px; border-radius: 3px; }
-    .swatch-neutral { background: #0c1018; border: 1px solid #334155; }
+    .swatch-black { background: #000000; border: 1px solid #333333; }
     .swatch-green { background: #00ff66; box-shadow: 0 0 10px rgba(0, 255, 102, 0.8); }
     .swatch-yellow { background: #ffea00; box-shadow: 0 0 10px rgba(255, 234, 0, 0.8); }
     .swatch-red { background: #ff1e1e; box-shadow: 0 0 10px rgba(255, 30, 30, 0.8); }
@@ -57,13 +57,13 @@
     <h1>Piso Gerador de Energia</h1>
     <p class="subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</p>
 
-    <div class="section-title">Escala Térmica de Tráfego</div>
+    <div class="section-title">Escala de Passagens por Ponto</div>
     <div class="legend-container">
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-neutral"></div><span class="legend-traffic">Sem Passagens</span></div><span class="legend-energy">Frio / Zero</span></div>
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-green"></div><span class="legend-traffic">Tráfego Baixo</span></div><span class="legend-energy">Verde</span></div>
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-yellow"></div><span class="legend-traffic">Tráfego Médio</span></div><span class="legend-energy">Amarelo</span></div>
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-red"></div><span class="legend-traffic">Tráfego Alto</span></div><span class="legend-energy">Vermelho</span></div>
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-purple"></div><span class="legend-traffic">Tráfego Intenso</span></div><span class="legend-energy">Roxo</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-black"></div><span class="legend-traffic">Preto</span></div><span class="legend-energy">Zero pessoas</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-green"></div><span class="legend-traffic">Verde</span></div><span class="legend-energy">1 pessoa</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-yellow"></div><span class="legend-traffic">Amarelo</span></div><span class="legend-energy">2 pessoas</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-red"></div><span class="legend-traffic">Vermelho</span></div><span class="legend-energy">3 pessoas</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-purple"></div><span class="legend-traffic">Roxo</span></div><span class="legend-energy">4 ou mais pessoas</span></div>
     </div>
 
     <div class="section-title">Telemetria em Tempo Real</div>
@@ -100,8 +100,8 @@
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x08090d);
-    scene.fog = new THREE.FogExp2(0x08090d, 0.012);
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, 0.012);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 36, 42);
@@ -144,15 +144,15 @@
     const bgCtx = bgCanvas.getContext('2d');
 
     function initFloorCanvas() {
-      bgCtx.fillStyle = '#0c1018';
+      bgCtx.fillStyle = '#000000';
       bgCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
       const numSquares = 16;
       const squareSize = HEATMAP_RES / numSquares;
       for (let r = 0; r < numSquares; r++) {
         for (let c = 0; c < numSquares; c++) {
-          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#101622' : '#0a0d14';
+          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#080808' : '#000000';
           bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
-          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
           bgCtx.lineWidth = 1;
           bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
         }
@@ -172,7 +172,7 @@
     scene.add(floorMesh);
 
     const borderGeo = new THREE.BoxGeometry(FLOOR_SIZE + 1.2, 0.6, FLOOR_SIZE + 1.2);
-    const borderMat = new THREE.MeshStandardMaterial({ color: 0x18202e, roughness: 0.7, metalness: 0.5 });
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7, metalness: 0.5 });
     const borderMesh = new THREE.Mesh(borderGeo, borderMat);
     borderMesh.position.y = -0.31;
     scene.add(borderMesh);
@@ -273,8 +273,8 @@
         vz: vz, 
         speed: speed, 
         walkCycle: Math.random() * Math.PI * 2, 
-        lastX: x, 
-        lastZ: z,
+        lastPaintedX: x, 
+        lastPaintedZ: z,
         lastStepX: x, 
         lastStepZ: z 
       };
@@ -282,20 +282,19 @@
       pedestrians.push(agent);
     }
 
-    // Mapeamento exato de passagens para as cores solicitadas
+    // Mapeamento exato de cores conforme solicitado:
     function getDiscreteColor(count) {
-      if (count === 1) return [0, 255, 102];    // 1 passagem = Verde
-      if (count === 2) return [255, 234, 0];    // 2 passagens = Amarelo
-      if (count === 3) return [255, 30, 30];    // 3 passagens = Vermelho
-      if (count >= 4) return [128, 0, 128];     // 4+ passagens = Roxo
-      return null;
+      if (count === 1) return [0, 255, 102];    // Verde - 1 pessoa
+      if (count === 2) return [255, 234, 0];    // Amarelo - 2 pessoas
+      if (count === 3) return [255, 30, 30];    // Vermelho - 3 pessoas
+      if (count >= 4) return [128, 0, 128];     // Roxo - 4 ou mais pessoas
+      return null;                               // Preto - Zero pessoas (mantém fundo)
     }
 
     function addHeatAtWorldPos(wx, wz) {
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       
-      // Raio mantido encorpado para formar o rastro sólido e contínuo
       const radius = 5; 
       const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
       const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
@@ -305,7 +304,6 @@
           const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
           if (dist2 <= radius ** 2) {
             const idx = y * HEATMAP_RES + x;
-            // Garante que só incrementa levemente para transicionar de cor de forma correta
             if (heatMapData[idx] < 4) {
               heatMapData[idx]++;
             }
@@ -371,11 +369,10 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          // Distância ideal para desenhar o rastro contínuo sem falhas
-          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.2) {
+          if (Math.hypot(currX - agent.lastPaintedX, currZ - agent.lastPaintedZ) > 1.2) {
             addHeatAtWorldPos(currX, currZ);
-            agent.lastX = currX;
-            agent.lastZ = currZ;
+            agent.lastPaintedX = currX;
+            agent.lastPaintedZ = currZ;
           }
 
           if (Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ) > 1.2) {
