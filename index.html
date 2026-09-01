@@ -57,9 +57,9 @@
     <h1>Piso Gerador de Energia</h1>
     <p class="subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</p>
 
-    <div class="section-title">Escala de Passagens por Ponto</div>
+    <div class="section-title">Escala de Tráfego por Ponto</div>
     <div class="legend-container">
-      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-black"></div><span class="legend-traffic">Preto</span></div><span class="legend-energy">Zero pessoas</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-black"></div><span class="legend-traffic">Preto</span></div><span class="legend-energy">0 pessoas</span></div>
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-green"></div><span class="legend-traffic">Verde</span></div><span class="legend-energy">1 pessoa</span></div>
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-yellow"></div><span class="legend-traffic">Amarelo</span></div><span class="legend-energy">2 pessoas</span></div>
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-red"></div><span class="legend-traffic">Vermelho</span></div><span class="legend-energy">3 pessoas</span></div>
@@ -282,13 +282,12 @@
       pedestrians.push(agent);
     }
 
-    // Mapeamento exato de cores conforme solicitado:
     function getDiscreteColor(count) {
       if (count === 1) return [0, 255, 102];    // Verde - 1 pessoa
       if (count === 2) return [255, 234, 0];    // Amarelo - 2 pessoas
       if (count === 3) return [255, 30, 30];    // Vermelho - 3 pessoas
       if (count >= 4) return [128, 0, 128];     // Roxo - 4 ou mais pessoas
-      return null;                               // Preto - Zero pessoas (mantém fundo)
+      return null;                               // Preto - 0 pessoas
     }
 
     function addHeatAtWorldPos(wx, wz) {
