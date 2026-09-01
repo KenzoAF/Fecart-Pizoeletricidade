@@ -3,430 +3,421 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulação de Piso Piezoelétrico - FECART</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  <title>Simulação de Piso Piezoelétrico | FECART</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #0b0e14;
-      color: #ffffff;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* Barra de Navegação */
-    .nav-tabs {
-      display: flex;
-      gap: 12px;
-      background-color: #161b22;
-      padding: 12px 24px;
-      border-bottom: 1px solid #30363d;
-      z-index: 100;
-    }
-
-    .tab-btn {
-      background: #21262d;
-      color: #8b949e;
-      border: 1px solid #30363d;
-      padding: 8px 18px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .tab-btn:hover {
-      background: #30363d;
-      color: #ffffff;
-    }
-
-    .tab-btn.active {
-      background: #1f6feb;
-      color: #ffffff;
-      border-color: #388bfd;
-    }
-
-    /* Container de Abas */
-    .tab-container {
-      flex: 1;
-      position: relative;
-      width: 100%;
-      height: calc(100vh - 57px);
-    }
-
-    .tab-content {
-      display: none;
-      width: 100%;
-      height: 100%;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Layout da Simulação */
-    .sim-layout {
-      display: flex;
-      width: 100%;
-      height: 100%;
-      background: #0b0e14;
-    }
-
-    .sidebar {
-      width: 320px;
-      background: #11151c;
-      border-right: 1px solid #30363d;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      overflow-y: auto;
-    }
-
-    .main-canvas-area {
-      flex: 1;
-      position: relative;
-      background: #0b0e14;
-    }
-
-    .panel-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .panel-subtitle {
-      font-size: 12px;
-      color: #8b949e;
-      line-height: 1.4;
-    }
-
-    .card-metric {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    .card-metric span {
-      font-size: 10px;
-      color: #8b949e;
-      text-transform: uppercase;
-    }
-
-    .card-metric h3 {
-      font-size: 20px;
-      color: #58a6ff;
-      margin-top: 2px;
-    }
-
-    .btn-action {
-      background: #1f6feb;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .btn-action:hover {
-      background: #388bfd;
-    }
-
-    /* Layout da Página do Projeto Físico */
-    .explain-container {
-      width: 100%;
-      height: 100%;
-      background: #0d1117;
-      padding: 40px;
-      overflow-y: auto;
-    }
-
-    .explain-header {
-      max-width: 900px;
-      margin: 0 auto 30px auto;
-    }
-
-    .explain-header h2 {
-      font-size: 28px;
-      color: #58a6ff;
-      margin-bottom: 8px;
-    }
-
-    .explain-header p {
-      color: #8b949e;
-      font-size: 14px;
-    }
-
-    .explain-grid {
-      max-width: 900px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-    }
-
-    .explain-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .explain-card:hover {
-      border-color: #58a6ff;
-      transform: translateY(-3px);
-    }
-
-    .explain-card h3 {
-      color: #58a6ff;
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-
-    .explain-card p {
-      color: #c9d1d9;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-  </style>
-
-  <!-- Biblioteca Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background-color: #08090d; font-family: 'Inter', sans-serif; color: #e2e8f0; }
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
+    .badge-dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+    h1 { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 6px; }
+    p.subtitle { font-size: 12px; color: #94a3b8; line-height: 1.4; margin-bottom: 16px; }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 10px; }
+    .legend-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .legend-color-box { display: flex; align-items: center; gap: 8px; }
+    .color-swatch { width: 14px; height: 14px; border-radius: 3px; }
+    .swatch-neutral { background: #0c1018; border: 1px solid #334155; }
+    .swatch-green { background: #00ff66; box-shadow: 0 0 10px rgba(0, 255, 102, 0.8); }
+    .swatch-yellow { background: #ffea00; box-shadow: 0 0 10px rgba(255, 234, 0, 0.8); }
+    .swatch-red { background: #ff1e1e; box-shadow: 0 0 10px rgba(255, 30, 30, 0.8); }
+    .swatch-purple { background: #800080; box-shadow: 0 0 10px rgba(128, 0, 128, 0.8); }
+    .legend-traffic { font-weight: 600; color: #f1f5f9; }
+    .legend-energy { font-size: 11px; color: #94a3b8; font-family: 'Orbitron', monospace; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .metric-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); padding: 10px 12px; border-radius: 10px; }
+    .metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
+    .metric-value { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; color: #38bdf8; }
+    .controls-row { display: flex; gap: 8px; }
+    .btn { flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn:hover { background: #334155; color: #ffffff; }
+    .btn-primary { background: #0284c7; border-color: #38bdf8; }
+    .btn-primary:hover { background: #0369a1; }
+    .hint-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 8px 18px; font-size: 11px; color: #94a3b8; display: flex; gap: 16px; pointer-events: none; }
+    .hint-bar span { display: inline-flex; align-items: center; gap: 5px; }
+    .hint-key { background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #fff; }
+  </style>
 </head>
 <body>
 
-  <!-- Menu de Navegação Superior -->
-  <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="openTab(event, 'simulacao')">Simulação 3D (Mapa de Calor)</button>
-    <button class="tab-btn" onclick="openTab(event, 'hardware')">Modelo 3D do Projeto Físico</button>
-  </nav>
+  <div id="canvas-container"></div>
 
-  <div class="tab-container">
-    
-    <!-- ABA 1: Simulação com Bonecos Visíveis e Rastros Coloridos -->
-    <div id="simulacao" class="tab-content active">
-      <div class="sim-layout">
-        <div class="sidebar">
-          <div>
-            <div style="background: #1f6feb; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">FECART - PIEZOELÉTRICA</div>
-            <div class="panel-title">Piso Gerador de Energia</div>
-            <div class="panel-subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</div>
-          </div>
+  <div class="hud-panel">
+    <div class="badge"><span class="badge-dot"></span> FECART • PIEZOELÉTRICA</div>
+    <h1>Piso Gerador de Energia</h1>
+    <p class="subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</p>
 
-          <div style="background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d;">
-            <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px;">Escala Térmica de Tráfego</div>
-            <div style="font-size: 11px; color: #8b949e; display: flex; flex-direction: column; gap: 4px;">
-              <div>🟩 Tráfego Baixo (Verde)</div>
-              <div>🟨 Tráfego Médio (Amarelo)</div>
-              <div>🟥 Tráfego Alto (Vermelho)</div>
-              <div>🟪 Tráfego Intenso (Roxo)</div>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div class="card-metric">
-              <span>Energia Acumulada</span>
-              <h3 id="energia-val">1524.4 J</h3>
-            </div>
-            <div class="card-metric">
-              <span>Potência Inst.</span>
-              <h3 id="potencia-val">51.1 W</h3>
-            </div>
-            <div class="card-metric">
-              <span>Passadas</span>
-              <h3 id="passadas-val">327</h3>
-            </div>
-            <div class="card-metric">
-              <span>Área Ativada</span>
-              <h3 id="area-val">20.5%</h3>
-            </div>
-          </div>
-
-          <button class="btn-action" onclick="reiniciarSimulacao()">Reiniciar Mapa</button>
-        </div>
-
-        <div class="main-canvas-area" id="canvas-container-map"></div>
-      </div>
+    <div class="section-title">Escala Térmica de Tráfego</div>
+    <div class="legend-container">
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-neutral"></div><span class="legend-traffic">Sem Passagens</span></div><span class="legend-energy">Frio / Zero</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-green"></div><span class="legend-traffic">Tráfego Baixo</span></div><span class="legend-energy">Verde</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-yellow"></div><span class="legend-traffic">Tráfego Médio</span></div><span class="legend-energy">Amarelo</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-red"></div><span class="legend-traffic">Tráfego Alto</span></div><span class="legend-energy">Vermelho</span></div>
+      <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-purple"></div><span class="legend-traffic">Tráfego Intenso</span></div><span class="legend-energy">Roxo</span></div>
     </div>
 
-    <!-- ABA 2: Projeto Físico Interativo -->
-    <div id="hardware" class="tab-content">
-      <div class="explain-container">
-        <div class="explain-header">
-          <h2>Arquitetura do Projeto Físico</h2>
-          <p>Clique nos cards abaixo para entender como cada componente atua na conversão da energia dos passos.</p>
-        </div>
-
-        <div class="explain-grid">
-          <div class="explain-card" onclick="alert('Superfície de Impacto: Camada superior em polímero resistente que recebe diretamente o peso e o atrito dos passos.')">
-            <h3>1. Superfície de Impacto</h3>
-            <p>Placa protetora que recebe a pressão direta dos passos e distribui a força.</p>
-          </div>
-
-          <div class="explain-card" onclick="alert('Pastilhas PZT: O coração do sistema. Cristais que convertem deformação mecânica em tensão elétrica.')">
-            <h3>2. Pastilhas Piezoelétricas (PZT)</h3>
-            <p>Matriz de cristais que convertem deformação mecânica em tensão elétrica.</p>
-          </div>
-
-          <div class="explain-card" onclick="alert('Ponte Retificadora: Converte a corrente alternada (AC) gerada pelos cristais em corrente contínua (DC) estável.')">
-            <h3>3. Ponte Retificadora / Circuito</h3>
-            <p>Converte corrente alternada (AC) em contínua (DC) e regula a voltagem.</p>
-          </div>
-
-          <div class="explain-card" onclick="alert('Supercapacitores/Bateria: Armazenam de forma eficiente a energia capturada para uso posterior.')">
-            <h3>4. Bateria / Supercapacitor</h3>
-            <p>Armazena a energia acumulada pelas passadas diárias.</p>
-          </div>
-        </div>
-      </div>
+    <div class="section-title">Telemetria em Tempo Real</div>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-label">Energia Acumulada</div><div class="metric-value" id="val-joules">0.0 J</div></div>
+      <div class="metric-card"><div class="metric-label">Potência Inst.</div><div class="metric-value" id="val-watts" style="color: #4ade80;">0.0 W</div></div>
+      <div class="metric-card"><div class="metric-label">Passadas Registradas</div><div class="metric-value" id="val-steps" style="color: #facc15;">0</div></div>
+      <div class="metric-card"><div class="metric-label">Área Ativada</div><div class="metric-value" id="val-coverage" style="color: #f000ff;">0.0%</div></div>
     </div>
 
+    <div class="controls-row">
+      <button class="btn" id="btn-reset">🔄 Reiniciar Mapa</button>
+      <button class="btn btn-primary" id="btn-pause">⏸️ Pausar</button>
+    </div>
+  </div>
+
+  <div class="hint-bar">
+    <span><span class="hint-key">Botão Esquerdo</span> Rotacionar</span>
+    <span><span class="hint-key">Scroll</span> Zoom</span>
+    <span><span class="hint-key">Botão Direito</span> Mover Cena</span>
   </div>
 
   <script>
-    function openTab(evt, tabName) {
-      const contents = document.querySelectorAll('.tab-content');
-      contents.forEach(content => content.classList.remove('active'));
+    const FLOOR_SIZE = 40;
+    const HALF_FLOOR = FLOOR_SIZE / 2;
+    const NUM_AGENTS = 8;
+    const HEATMAP_RES = 512;
+    const JOULES_PER_STEP = 4.8;
+    
+    let isPaused = false;
+    let totalJoules = 0;
+    let totalSteps = 0;
+    let instantaneousWatts = 0;
 
-      const buttons = document.querySelectorAll('.tab-btn');
-      buttons.forEach(btn => btn.classList.remove('active'));
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x08090d);
+    scene.fog = new THREE.FogExp2(0x08090d, 0.012);
 
-      document.getElementById(tabName).classList.add('active');
-      evt.currentTarget.classList.add('active');
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 36, 42);
 
-      if (tabName === 'simulacao') {
-        window.dispatchEvent(new Event('resize'));
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.05;
+    controls.minDistance = 15;
+    controls.maxDistance = 100;
+    controls.target.set(0, 0, 0);
+
+    const ambientLight = new THREE.AmbientLight(0x4a5a78, 1.2);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(25, 45, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
+
+    const heatMapData = new Float32Array(HEATMAP_RES * HEATMAP_RES);
+
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = HEATMAP_RES;
+    outputCanvas.height = HEATMAP_RES;
+    const outputCtx = outputCanvas.getContext('2d');
+
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = HEATMAP_RES;
+    bgCanvas.height = HEATMAP_RES;
+    const bgCtx = bgCanvas.getContext('2d');
+
+    function initFloorCanvas() {
+      bgCtx.fillStyle = '#0c1018';
+      bgCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
+      const numSquares = 16;
+      const squareSize = HEATMAP_RES / numSquares;
+      for (let r = 0; r < numSquares; r++) {
+        for (let c = 0; c < numSquares; c++) {
+          bgCtx.fillStyle = (r + c) % 2 === 0 ? '#101622' : '#0a0d14';
+          bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+          bgCtx.lineWidth = 1;
+          bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+        }
       }
+      outputCtx.drawImage(bgCanvas, 0, 0);
+    }
+    initFloorCanvas();
+
+    const floorTexture = new THREE.CanvasTexture(outputCanvas);
+    floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
+    const floorMat = new THREE.MeshStandardMaterial({ map: floorTexture, roughness: 0.4, metalness: 0.1 });
+    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.receiveShadow = true;
+    scene.add(floorMesh);
+
+    const borderGeo = new THREE.BoxGeometry(FLOOR_SIZE + 1.2, 0.6, FLOOR_SIZE + 1.2);
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0x18202e, roughness: 0.7, metalness: 0.5 });
+    const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+    borderMesh.position.y = -0.31;
+    scene.add(borderMesh);
+
+    const humanPalettes = [
+      { shirt: 0x2563eb, pants: 0x1e293b, skin: 0xfbcfe8, shoes: 0x0f172a },
+      { shirt: 0xdc2626, pants: 0x334155, skin: 0xe0ac69, shoes: 0xffffff },
+      { shirt: 0x16a34a, pants: 0x0f172a, skin: 0x8d5524, shoes: 0x1e293b },
+      { shirt: 0xea580c, pants: 0x475569, skin: 0xffd1b3, shoes: 0xffffff }
+    ];
+
+    function createDetailedHumanModel(palette) {
+      const humanGroup = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: palette.skin, roughness: 0.6 });
+      const shirtMat = new THREE.MeshStandardMaterial({ color: palette.shirt, roughness: 0.5 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: palette.pants, roughness: 0.5 });
+      const shoeMat = new THREE.MeshStandardMaterial({ color: palette.shoes, roughness: 0.3 });
+
+      // Torso
+      const torsoGeo = new THREE.CylinderGeometry(0.38, 0.28, 0.85, 12);
+      const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+      torsoMesh.position.y = 1.35;
+      torsoMesh.castShadow = true;
+      humanGroup.add(torsoMesh);
+
+      // Cabeça
+      const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
+      headMesh.position.y = 2.0;
+      headMesh.castShadow = true;
+      humanGroup.add(headMesh);
+
+      // Pernas
+      const legGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.85, 10);
+      const shoeGeo = new THREE.BoxGeometry(0.16, 0.12, 0.32);
+
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(-0.18, 0.9, 0);
+      const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      leftLegMesh.position.y = -0.42;
+      leftLegMesh.castShadow = true;
+      const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      leftShoe.position.set(0, -0.8, 0.06);
+      leftShoe.castShadow = true;
+      leftLegPivot.add(leftLegMesh, leftShoe);
+      humanGroup.add(leftLegPivot);
+
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(0.18, 0.9, 0);
+      const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+      rightLegMesh.position.y = -0.42;
+      rightLegMesh.castShadow = true;
+      const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      rightShoe.position.set(0, -0.8, 0.06);
+      rightShoe.castShadow = true;
+      rightLegPivot.add(rightLegMesh, rightShoe);
+      humanGroup.add(rightLegPivot);
+
+      // Braços
+      const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.75, 10);
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(-0.42, 1.65, 0);
+      const leftArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      leftArmMesh.position.y = -0.35;
+      leftArmMesh.castShadow = true;
+      leftArmPivot.add(leftArmMesh);
+      humanGroup.add(leftArmPivot);
+
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(0.42, 1.65, 0);
+      const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
+      rightArmMesh.position.y = -0.35;
+      rightArmMesh.castShadow = true;
+      rightArmPivot.add(rightArmMesh);
+      humanGroup.add(rightArmPivot);
+
+      return { root: humanGroup, leftLeg: leftLegPivot, rightLeg: rightLegPivot, leftArm: leftArmPivot, rightArm: rightArmPivot };
     }
 
-    let contadorPassadas = 327;
-    let energiaAcumulada = 1524.4;
-
-    function reiniciarSimulacao() {
-      contadorPassadas = 0;
-      energiaAcumulada = 0;
-      document.getElementById('energia-val').innerText = '0.0 J';
-      document.getElementById('potencia-val').innerText = '0.0 W';
-      document.getElementById('passadas-val').innerText = '0';
-      document.getElementById('area-val').innerText = '0.0%';
+    function updateHumanRotation(agent) {
+      const angle = Math.atan2(agent.vx, agent.vz);
+      agent.human.root.rotation.y = angle;
     }
 
-    // --- Simulação 3D com Bonequinhos Visíveis e Rastros Coloridos ---
-    function initMapSimulation() {
-      const container = document.getElementById('canvas-container-map');
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0b0e14);
+    const pedestrians = [];
+    for (let i = 0; i < NUM_AGENTS; i++) {
+      const palette = humanPalettes[i % humanPalettes.length];
+      const human = createDetailedHumanModel(palette);
+      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      human.root.position.set(x, 0, z);
 
-      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(0, 16, 14);
+      const speed = 0.07 + Math.random() * 0.04;
+      const angle = Math.random() * Math.PI * 2;
+      const vx = Math.sin(angle) * speed;
+      const vz = Math.cos(angle) * speed;
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      container.appendChild(renderer.domElement);
+      scene.add(human.root);
+      const agent = { id: i, human: human, vx: vx, vz: vz, speed: speed, walkCycle: Math.random() * Math.PI * 2, lastStepX: x, lastStepZ: z };
+      updateHumanRotation(agent);
+      pedestrians.push(agent);
+    }
 
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
+    function getContinuousHeatColor(value) {
+      const v = Math.min(1.0, Math.max(0.0, value));
+      let r = 0, g = 0, b = 0;
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(10, 20, 10);
-      scene.add(light);
-
-      // Grid do Piso
-      const gridGeo = new THREE.PlaneGeometry(14, 14, 25, 25);
-      const gridMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, wireframe: true });
-      const gridMesh = new THREE.Mesh(gridGeo, gridMat);
-      gridMesh.rotation.x = -Math.PI / 2;
-      scene.add(gridMesh);
-
-      const simulationGroup = new THREE.Group();
-      scene.add(simulationGroup);
-
-      // Cores da escala térmica: Verde, Amarelo, Vermelho, Roxo
-      const trafficColors = [0x22c55e, 0xeab308, 0xef4444, 0xa855f7]; 
-      const agents = [];
-
-      for (let i = 0; i < 5; i++) {
-        const color = trafficColors[i % trafficColors.length];
-        const agent = {
-          x: (Math.random() - 0.5) * 10,
-          z: (Math.random() - 0.5) * 10,
-          vx: (Math.random() - 0.5) * 0.05,
-          vz: (Math.random() - 0.5) * 0.05,
-          color: color,
-          mesh: null
-        };
-
-        // Bonequinho com tamanho bem visível sobre o piso
-        const personGeo = new THREE.CylinderGeometry(0.25, 0.25, 1.2, 12);
-        const personMat = new THREE.MeshBasicMaterial({ color: color });
-        const personMesh = new THREE.Mesh(personGeo, personMat);
-        personMesh.position.set(agent.x, 0.6, agent.z);
-        simulationGroup.add(personMesh);
-        agent.mesh = personMesh;
-
-        agents.push(agent);
+      if (v < 0.25) {
+        r = 0; g = 255; b = 102;
+      } else if (v < 0.50) {
+        const t = (v - 0.25) / 0.25;
+        r = Math.floor(255 * t); g = 255; b = Math.floor(102 * (1 - t));
+      } else if (v < 0.75) {
+        const t = (v - 0.50) / 0.25;
+        r = 255; g = Math.floor(255 * (1 - t)); b = 0;
+      } else {
+        const t = (v - 0.75) / 0.25;
+        r = Math.floor(255 - (127 * t)); g = 0; b = Math.floor(128 * t);
       }
 
-      function animateMap() {
-        requestAnimationFrame(animateMap);
-        controls.update();
+      return [r, g, b];
+    }
 
-        agents.forEach(agent => {
-          agent.x += agent.vx;
-          agent.z += agent.vz;
+    function addHeatAtWorldPos(wx, wz) {
+      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      
+      // Raio menor (7px) e intensidade reduzida (0.005) para um rastro mais discreto
+      const radius = 7; 
+      const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
+      const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
 
-          if (agent.x > 6 || agent.x < -6) agent.vx *= -1;
-          if (agent.z > 6 || agent.z < -6) agent.vz *= -1;
-
-          // Atualiza a posição do bonequinho visível
-          agent.mesh.position.set(agent.x, 0.6, agent.z);
-
-          // O boneco deixa o rastro da cor correspondente no piso
-          if (Math.random() < 0.35) {
-            const trailGeo = new THREE.BoxGeometry(0.35, 0.06, 0.35);
-            const trailMat = new THREE.MeshBasicMaterial({ color: agent.color });
-            const trail = new THREE.Mesh(trailGeo, trailMat);
-            trail.position.set(agent.x, 0.02, agent.z);
-            simulationGroup.add(trail);
-
-            contadorPassadas += 0.05;
-            energiaAcumulada += 0.2;
-            document.getElementById('passadas-val').innerText = Math.floor(contadorPassadas);
-            document.getElementById('energia-val').innerText = energiaAcumulada.toFixed(1) + ' J';
-            document.getElementById('potencia-val').innerText = (Math.random() * 10 + 42).toFixed(1) + ' W';
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
+          if (dist2 <= radius ** 2) {
+            const falloff = 0.5 * (1 + Math.cos((Math.sqrt(dist2) / radius) * Math.PI));
+            heatMapData[y * HEATMAP_RES + x] += falloff * 0.005; 
           }
-        });
-
-        renderer.render(scene, camera);
+        }
       }
-      animateMap();
+    }
 
-      window.addEventListener('resize', () => {
-        if(container.clientWidth > 0) {
-          camera.aspect = container.clientWidth / container.clientHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(container.clientWidth, container.clientHeight);
+    function updateHeatmapTexture() {
+      const bgImgData = bgCtx.getImageData(0, 0, HEATMAP_RES, HEATMAP_RES);
+      const data = bgImgData.data;
+      let activePixels = 0;
+
+      for (let i = 0; i < heatMapData.length; i++) {
+        const val = heatMapData[i];
+        if (val > 0.0001) { 
+          activePixels++;
+          const col = getContinuousHeatColor(val);
+          const pIdx = i * 4;
+          data[pIdx] = col[0]; data[pIdx + 1] = col[1]; data[pIdx + 2] = col[2];
+        }
+      }
+      outputCtx.putImageData(bgImgData, 0, 0);
+      floorTexture.needsUpdate = true;
+      document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
+    }
+
+    function updateAgents() {
+      let stepOccurred = false;
+      pedestrians.forEach((agent) => {
+        if (!isPaused) {
+          agent.human.root.position.x += agent.vx;
+          agent.human.root.position.z += agent.vz;
+
+          const currX = agent.human.root.position.x;
+          const currZ = agent.human.root.position.z;
+
+          updateHumanRotation(agent);
+
+          agent.walkCycle += agent.speed * 2.8;
+          
+          agent.human.leftLeg.rotation.x = Math.sin(agent.walkCycle) * 0.6;
+          agent.human.rightLeg.rotation.x = -Math.sin(agent.walkCycle) * 0.6;
+          agent.human.leftArm.rotation.x = -Math.sin(agent.walkCycle) * 0.5;
+          agent.human.rightArm.rotation.x = Math.sin(agent.walkCycle) * 0.5;
+
+          if (Math.abs(currX) > HALF_FLOOR - 1.8) {
+            agent.vx *= -1;
+            agent.vz += (Math.random() - 0.5) * 0.02;
+          }
+          if (Math.abs(currZ) > HALF_FLOOR - 1.8) {
+            agent.vz *= -1;
+            agent.vx += (Math.random() - 0.5) * 0.02;
+          }
+
+          const currentSpeed = Math.hypot(agent.vx, agent.vz);
+          if (currentSpeed > 0) {
+            agent.vx = (agent.vx / currentSpeed) * agent.speed;
+            agent.vz = (agent.vz / currentSpeed) * agent.speed;
+          }
+
+          addHeatAtWorldPos(currX, currZ);
+
+          if (Math.hypot(currX - agent.lastStepX, currZ - agent.lastStepZ) > 1.2) {
+            agent.lastStepX = currX;
+            agent.lastStepZ = currZ;
+            totalSteps++;
+            totalJoules += JOULES_PER_STEP;
+            stepOccurred = true;
+          }
         }
       });
+
+      instantaneousWatts = stepOccurred ? (NUM_AGENTS * 6.5) + (Math.random() * 8.0) : Math.max(0, instantaneousWatts * 0.94);
+      document.getElementById('val-joules').innerText = `${totalJoules.toFixed(1)} J`;
+      document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
+      document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
     }
 
-    window.onload = function() {
-      initMapSimulation();
-    };
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      updateAgents();
+      if (!isPaused) updateHeatmapTexture();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      heatMapData.fill(0);
+      initFloorCanvas();
+      floorTexture.needsUpdate = true;
+      totalJoules = totalSteps = instantaneousWatts = 0;
+      document.getElementById('val-joules').innerText = '0.0 J';
+      document.getElementById('val-watts').innerText = '0.0 W';
+      document.getElementById('val-steps').innerText = '0';
+      document.getElementById('val-coverage').innerText = '0.0%';
+    });
+
+    const btnPause = document.getElementById('btn-pause');
+    btnPause.addEventListener('click', () => {
+      isPaused = !isPaused;
+      btnPause.innerHTML = isPaused ? '▶️ Retomar' : '⏸️ Pausar';
+      btnPause.classList.toggle('btn-primary', !isPaused);
+    });
   </script>
 </body>
 </html>
