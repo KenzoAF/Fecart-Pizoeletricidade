@@ -90,7 +90,7 @@
     const FLOOR_SIZE = 40;
     const HALF_FLOOR = FLOOR_SIZE / 2;
     const NUM_AGENTS = 8;
-    const HEATMAP_RES = 512; // Retornado para a resolução alta para dar a largura correta do rastro
+    const HEATMAP_RES = 512; 
     const JOULES_PER_STEP = 4.8;
     
     let isPaused = false;
@@ -131,8 +131,7 @@
     dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
 
-    // Matriz para guardar quantas vezes cada pixel foi visitado
-    const heatMapData = new Uint8Array(HEATMAP_RES * HEATMAP_RES);
+    const heatMapData = new Uint16Array(HEATMAP_RES * HEATMAP_RES);
 
     const outputCanvas = document.createElement('canvas');
     outputCanvas.width = HEATMAP_RES;
@@ -283,12 +282,12 @@
       pedestrians.push(agent);
     }
 
-    // Cores exatas para cada número de passagens:
+    // Cores exatas solicitadas:
     function getDiscreteColor(count) {
-      if (count === 1) return [0, 255, 102];    // 1 vez = Verde
-      if (count === 2) return [255, 234, 0];    // 2 vezes = Amarelo
-      if (count === 3) return [255, 30, 30];    // 3 vezes = Vermelho
-      if (count >= 4) return [128, 0, 128];     // 4 ou mais = Roxo
+      if (count === 1) return [0, 255, 102];    // 1 passagem = Verde
+      if (count === 2) return [255, 234, 0];    // 2 passagens = Amarelo
+      if (count === 3) return [255, 30, 30];    // 3 passagens = Vermelho
+      if (count >= 4) return [128, 0, 128];     // 4+ passagens = Roxo
       return null;
     }
 
@@ -296,7 +295,7 @@
       const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
       
-      // Raio 6 traz de volta a largura de rastro encorpada da foto anterior
+      // Raio encorpado para formar o traçado contínuo idêntico ao da imagem
       const radius = 6; 
       const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
       const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
@@ -306,7 +305,7 @@
           const dist2 = (x - cx) ** 2 + (y - cy) ** 2;
           if (dist2 <= radius ** 2) {
             const idx = y * HEATMAP_RES + x;
-            // Limita para incrementar apenas até 4 para garantir o controle exato das cores
+            // Incremento controlado para subir de cor gradativamente a cada passagem real pela mesma área
             if (heatMapData[idx] < 4) {
               heatMapData[idx]++;
             }
@@ -372,7 +371,8 @@
             agent.vz = (agent.vz / currentSpeed) * agent.speed;
           }
 
-          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.4) {
+          // Intervalo de distância otimizado para desenhar a linha contínua perfeita sem falhas
+          if (Math.hypot(currX - agent.lastX, currZ - agent.lastZ) > 0.15) {
             addHeatAtWorldPos(currX, currZ);
             agent.lastX = currX;
             agent.lastZ = currZ;
