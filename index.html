@@ -21,8 +21,10 @@
     /* Painel Esquerdo */
     .hud-panel { position: absolute; top: 20px; left: 20px; z-index: 10; width: 360px; max-width: calc(100vw - 40px); background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
     
-    /* Painel Direito (Gráfico + Calculadora f(x)) */
-    .hud-panel-right { position: absolute; top: 20px; right: 20px; z-index: 10; width: 340px; background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+    /* Painel Direito (Gráfico + Calculadora f(x) + Mini Heatmap Dinâmico) */
+    .hud-panel-right { position: absolute; top: 20px; right: 20px; z-index: 10; width: 340px; background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1); max-height: calc(100vh - 40px); overflow-y: auto; }
+    .hud-panel-right::-webkit-scrollbar { width: 4px; }
+    .hud-panel-right::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
     .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-bottom: 10px; }
     .badge-dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6; animation: pulse 1.5s infinite; }
@@ -41,10 +43,16 @@
     .swatch-purple { background: #800080; box-shadow: 0 0 10px rgba(128, 0, 128, 0.8); }
     .legend-traffic { font-weight: 600; color: #f1f5f9; }
     .legend-energy { font-size: 11px; color: #94a3b8; font-family: 'Orbitron', monospace; }
-    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .metric-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); padding: 10px 12px; border-radius: 10px; }
     .metric-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
     .metric-value { font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; color: #38bdf8; }
+    
+    .slider-container { margin-bottom: 14px; background: rgba(0, 0, 0, 0.3); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .slider-header { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+    .slider-header span:last-child { font-family: 'Orbitron', monospace; color: #38bdf8; font-weight: 700; }
+    input[type=range] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+
     .controls-row { display: flex; gap: 8px; }
     .btn { flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn:hover { background: #334155; color: #ffffff; }
@@ -63,6 +71,14 @@
     .calc-btn { flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; text-align: center; }
     .calc-btn:hover { background: #334155; color: #fff; }
 
+    /* Mini Mapa de Calor Dinâmico (Inferior Direito) */
+    .ideal-map-container { margin-top: 12px; background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; align-items: center; }
+    .ideal-map-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .ideal-map-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    #idealCanvas { width: 100px; height: 140px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.15); display: block; background: #0c1018; transition: border-color 0.3s; }
+    .ideal-map-container.target-reached #idealCanvas { border-color: #4ade80; box-shadow: 0 0 12px rgba(74, 222, 128, 0.4); }
+    .ideal-desc { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 6px; line-height: 1.3; }
+
     .hint-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 8px 18px; font-size: 11px; color: #94a3b8; display: flex; gap: 16px; pointer-events: none; }
     .hint-bar span { display: inline-flex; align-items: center; gap: 5px; }
     .hint-key { background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; color: #fff; }
@@ -74,8 +90,8 @@
 
   <div class="hud-panel">
     <div class="badge"><span class="badge-dot"></span> FECART • PIEZOELÉTRICA</div>
-    <h1>Piso Gerador de Energia</h1>
-    <p class="subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo tráfego de pessoas.</p>
+    <h1>Simulação de Calçada</h1>
+    <p class="subtitle">Conversão mecânica-elétrica via efeito piezoelétrico acionado pelo fluxo linear de pedestres.</p>
 
     <div class="section-title">Escala Térmica de Tráfego</div>
     <div class="legend-container">
@@ -84,6 +100,14 @@
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-yellow"></div><span class="legend-traffic">Tráfego Médio</span></div><span class="legend-energy">Amarelo</span></div>
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-red"></div><span class="legend-traffic">Tráfego Alto</span></div><span class="legend-energy">Vermelho</span></div>
       <div class="legend-item"><div class="legend-color-box"><div class="color-swatch swatch-purple"></div><span class="legend-traffic">Tráfego Intenso</span></div><span class="legend-energy">Roxo</span></div>
+    </div>
+
+    <div class="slider-container">
+      <div class="slider-header">
+        <span>Quantidade de Pedestres</span>
+        <span id="label-agents-count">8</span>
+      </div>
+      <input type="range" id="range-agents" min="1" max="25" value="8">
     </div>
 
     <div class="section-title">Telemetria em Tempo Real</div>
@@ -121,6 +145,14 @@
         <button class="calc-btn" id="btn-pause-chart">⏸️ Pausar Gráfico</button>
       </div>
     </div>
+
+    <div class="ideal-map-container" id="ideal-container">
+      <div class="ideal-map-header">
+        <span class="ideal-map-title">IA: Região Ideal de Pisos</span>
+      </div>
+      <canvas id="idealCanvas" width="100" height="140"></canvas>
+      <div class="ideal-desc" id="ideal-desc-text">Inspirando-se no mapa para escolher a melhor área...</div>
+    </div>
   </div>
 
   <div class="hint-bar">
@@ -130,9 +162,11 @@
   </div>
 
   <script>
-    const FLOOR_SIZE = 40;
-    const HALF_FLOOR = FLOOR_SIZE / 2;
-    const NUM_AGENTS = 8;
+    const FLOOR_WIDTH = 14;
+    const FLOOR_LENGTH = 45;
+    const HALF_WIDTH = FLOOR_WIDTH / 2;
+    const HALF_LENGTH = FLOOR_LENGTH / 2;
+    
     const HEATMAP_RES = 512;
     const JOULES_PER_STEP = 4.8;
     
@@ -141,6 +175,13 @@
     let totalJoules = 0;
     let totalSteps = 0;
     let instantaneousWatts = 0;
+    let targetAgentCount = 8;
+    let simulationFrames = 0;
+    let coveragePercentage = 0;
+    let aiLocked = false;
+    let lockedBestPx = -1;
+    let lockedBestPy = -1;
+    let lockedBestVal = 0;
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -148,7 +189,7 @@
     scene.fog = new THREE.FogExp2(0x08090d, 0.012);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 36, 42);
+    camera.position.set(0, 32, 42);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -190,15 +231,17 @@
     function initFloorCanvas() {
       bgCtx.fillStyle = '#0c1018';
       bgCtx.fillRect(0, 0, HEATMAP_RES, HEATMAP_RES);
-      const numSquares = 16;
-      const squareSize = HEATMAP_RES / numSquares;
-      for (let r = 0; r < numSquares; r++) {
-        for (let c = 0; c < numSquares; c++) {
+      const numSquaresX = 6;
+      const numSquaresZ = 18;
+      const squareSizeX = HEATMAP_RES / numSquaresX;
+      const squareSizeZ = HEATMAP_RES / numSquaresZ;
+      for (let r = 0; r < numSquaresZ; r++) {
+        for (let c = 0; c < numSquaresX; c++) {
           bgCtx.fillStyle = (r + c) % 2 === 0 ? '#101622' : '#0a0d14';
-          bgCtx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          bgCtx.fillRect(c * squareSizeX, r * squareSizeZ, squareSizeX, squareSizeZ);
           bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
           bgCtx.lineWidth = 1;
-          bgCtx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          bgCtx.strokeRect(c * squareSizeX, r * squareSizeZ, squareSizeX, squareSizeZ);
         }
       }
       outputCtx.drawImage(bgCanvas, 0, 0);
@@ -208,14 +251,14 @@
     const floorTexture = new THREE.CanvasTexture(outputCanvas);
     floorTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 64, 64);
+    const floorGeo = new THREE.PlaneGeometry(FLOOR_WIDTH, FLOOR_LENGTH, 32, 64);
     const floorMat = new THREE.MeshStandardMaterial({ map: floorTexture, roughness: 0.4, metalness: 0.1 });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    const borderGeo = new THREE.BoxGeometry(FLOOR_SIZE + 1.2, 0.6, FLOOR_SIZE + 1.2);
+    const borderGeo = new THREE.BoxGeometry(FLOOR_WIDTH + 1.2, 0.6, FLOOR_LENGTH + 1.2);
     const borderMat = new THREE.MeshStandardMaterial({ color: 0x18202e, roughness: 0.7, metalness: 0.5 });
     const borderMesh = new THREE.Mesh(borderGeo, borderMat);
     borderMesh.position.y = -0.31;
@@ -297,21 +340,36 @@
     }
 
     const pedestrians = [];
-    for (let i = 0; i < NUM_AGENTS; i++) {
+    const maxPossibleAgents = 25;
+
+    for (let i = 0; i < maxPossibleAgents; i++) {
       const palette = humanPalettes[i % humanPalettes.length];
       const human = createDetailedHumanModel(palette);
-      const x = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
-      const z = (Math.random() - 0.5) * (FLOOR_SIZE - 10);
+      
+      const x = (Math.random() - 0.5) * (FLOOR_WIDTH - 2);
+      const z = (Math.random() - 0.5) * (FLOOR_LENGTH - 4);
       human.root.position.set(x, 0, z);
 
-      const speed = 0.07 + Math.random() * 0.04;
-      const angle = Math.random() * Math.PI * 2;
-      const vx = Math.sin(angle) * speed;
-      const vz = Math.cos(angle) * speed;
-
+      const direction = i % 2 === 0 ? 1 : -1;
+      const speed = 0.05 + Math.random() * 0.025;
+      
       scene.add(human.root);
-      const agent = { id: i, human: human, vx: vx, vz: vz, speed: speed, walkCycle: Math.random() * Math.PI * 2, lastStepX: x, lastStepZ: z };
+      const agent = { 
+        id: i, 
+        human: human, 
+        targetX: x, 
+        vx: 0, 
+        vz: direction * speed, 
+        speed: speed, 
+        walkCycle: Math.random() * Math.PI * 2, 
+        lastStepX: x, 
+        lastStepZ: z 
+      };
       updateHumanRotation(agent);
+      
+      if (i >= targetAgentCount) {
+        human.root.visible = false;
+      }
       pedestrians.push(agent);
     }
 
@@ -336,10 +394,10 @@
     }
 
     function addHeatAtWorldPos(wx, wz) {
-      const cx = Math.floor(((wx + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
-      const cy = Math.floor(((wz + HALF_FLOOR) / FLOOR_SIZE) * HEATMAP_RES);
+      const cx = Math.floor(((wx + HALF_WIDTH) / FLOOR_WIDTH) * HEATMAP_RES);
+      const cy = Math.floor(((wz + HALF_LENGTH) / FLOOR_LENGTH) * HEATMAP_RES);
       
-      const radius = 14; 
+      const radius = 12; 
       const minX = Math.max(0, cx - radius), maxX = Math.min(HEATMAP_RES - 1, cx + radius);
       const minY = Math.max(0, cy - radius), maxY = Math.min(HEATMAP_RES - 1, cy + radius);
 
@@ -370,15 +428,147 @@
       }
       outputCtx.putImageData(bgImgData, 0, 0);
       floorTexture.needsUpdate = true;
-      document.getElementById('val-coverage').innerText = `${((activePixels / heatMapData.length) * 100).toFixed(1)}%`;
+      coveragePercentage = (activePixels / heatMapData.length) * 100;
+      document.getElementById('val-coverage').innerText = `${coveragePercentage.toFixed(1)}%`;
     }
 
-    // Função matemática f(x) oficial (onde x representa Segundos)
+    // IA Dinâmica: Quando atinge 90%, trava a melhor área inspirada no mapa de calor e mantém até o final
+    function updateAIdealHeatmap() {
+      const canvas = document.getElementById('idealCanvas');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const descText = document.getElementById('ideal-desc-text');
+      const idealContainer = document.getElementById('ideal-container');
+
+      simulationFrames++;
+
+      if (simulationFrames < 90) {
+        ctx.fillStyle = '#0c1018';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < w; i += 15) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+        }
+        for (let j = 0; j < h; j += 15) {
+          ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke();
+        }
+        descText.innerText = `Inspirando-se no mapa (${Math.floor((simulationFrames/90)*100)}%)...`;
+        idealContainer.classList.remove('target-reached');
+        return;
+      }
+
+      const miniResX = 14;
+      const miniResY = 20;
+      const stepX = Math.floor(HEATMAP_RES / miniResX);
+      const stepY = Math.floor(HEATMAP_RES / miniResY);
+      const cellW = w / miniResX;
+      const cellH = h / miniResY;
+
+      // Se já travou (atingiu 90%), mantém estático o resultado escolhido pela IA com base no mapa
+      if (aiLocked) {
+        idealContainer.classList.add('target-reached');
+        descText.innerHTML = "🎯 <strong style='color:#4ade80;'>Melhor área!</strong> IA escolheu baseada no mapa.";
+
+        ctx.fillStyle = '#0c1018';
+        ctx.fillRect(0, 0, w, h);
+
+        let col = getContinuousHeatColor(lockedBestVal);
+        ctx.fillStyle = `rgb(${col[0]}, ${col[1]}, ${col[2]})`;
+
+        const radiusFocus = 1;
+        for (let dy = -radiusFocus; dy <= radiusFocus; dy++) {
+          for (let dx = -radiusFocus; dx <= radiusFocus; dx++) {
+            let targetX = lockedBestPx + dx;
+            let targetY = lockedBestPy + dy;
+            if (targetX >= 0 && targetX < miniResX && targetY >= 0 && targetY < miniResY) {
+              ctx.fillRect(targetX * cellW + 1, targetY * cellH + 1, cellW - 2, cellH - 2);
+            }
+          }
+        }
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < w; i += 15) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+        }
+        for (let j = 0; j < h; j += 15) {
+          ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke();
+        }
+        return;
+      }
+
+      ctx.fillStyle = '#0c1018';
+      ctx.fillRect(0, 0, w, h);
+
+      let maxVal = 0.001;
+      for (let y = 0; y < HEATMAP_RES; y += stepY) {
+        for (let x = 0; x < HEATMAP_RES; x += stepX) {
+          let val = heatMapData[y * HEATMAP_RES + x];
+          if (val > maxVal) maxVal = val;
+        }
+      }
+
+      // Quando atingir 90%, a IA se inspira no mapa de calor e trava a melhor área definitivamente
+      if (coveragePercentage >= 90.0) {
+        let bestVal = -1;
+        let bestPx = -1;
+        let bestPy = -1;
+
+        for (let py = 0; py < miniResY; py++) {
+          for (let px = 0; px < miniResX; px++) {
+            let sampleX = px * stepX;
+            let sampleY = py * stepY;
+            let val = heatMapData[sampleY * HEATMAP_RES + sampleX] / maxVal;
+            if (val > bestVal) {
+              bestVal = val;
+              bestPx = px;
+              bestPy = py;
+            }
+          }
+        }
+
+        if (bestPx !== -1) {
+          lockedBestPx = bestPx;
+          lockedBestPy = bestPy;
+          lockedBestVal = bestVal;
+          aiLocked = true;
+          return;
+        }
+      }
+
+      // Enquanto não atinge 90%, mostra o progresso normal do aprendizado inspirado no mapa
+      descText.innerText = `Analisando mapa (${coveragePercentage.toFixed(1)}%/90%)...`;
+      for (let py = 0; py < miniResY; py++) {
+        for (let px = 0; px < miniResX; px++) {
+          let sampleX = px * stepX;
+          let sampleY = py * stepY;
+          let val = heatMapData[sampleY * HEATMAP_RES + sampleX] / maxVal;
+
+          if (val > 0.05) {
+            let col = getContinuousHeatColor(val);
+            ctx.fillStyle = `rgb(${col[0]}, ${col[1]}, ${col[2]})`;
+            ctx.fillRect(px * cellW, py * cellH, cellW + 0.5, cellH + 0.5);
+          }
+        }
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < w; i += 15) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+      }
+      for (let j = 0; j < h; j += 15) {
+        ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke();
+      }
+    }
+
     function calcFX(x) {
-      return (x * 4.8 * 0.5) + Math.pow(1.08, x);
+      const scaleMultiplier = targetAgentCount / 8;
+      return ((x * 4.8 * 0.5) + Math.pow(1.08, x)) * scaleMultiplier;
     }
 
-    // Configuração do Gráfico f(x)
     const fxCtx = document.getElementById('fxChart').getContext('2d');
     const xPoints = [];
     const fxValues = [];
@@ -417,13 +607,43 @@
 
     function updateAgents() {
       let stepOccurred = false;
-      pedestrians.forEach((agent) => {
-        if (!isPaused) {
-          agent.human.root.position.x += agent.vx;
-          agent.human.root.position.z += agent.vz;
 
-          const currX = agent.human.root.position.x;
-          const currZ = agent.human.root.position.z;
+      pedestrians.forEach((agent, idx) => {
+        if (idx >= targetAgentCount) return;
+
+        if (!isPaused) {
+          let avoidX = 0;
+          let avoidZ = 0;
+          
+          pedestrians.forEach((other, otherIdx) => {
+            if (idx !== otherIdx && otherIdx < targetAgentCount) {
+              const dx = agent.human.root.position.x - other.human.root.position.x;
+              const dz = agent.human.root.position.z - other.human.root.position.z;
+              const dist = Math.hypot(dx, dz);
+              
+              if (dist < 1.8 && dist > 0.0001) {
+                const repulseForce = (1.8 - dist) / dist;
+                avoidX += dx * repulseForce * 0.08;
+                avoidZ += dz * repulseForce * 0.04;
+              } else if (dist < 3.5 && dist > 0.001) {
+                avoidX += (dx / dist) * (3.5 - dist) * 0.015;
+              }
+            }
+          });
+
+          const returnForce = (agent.targetX - agent.human.root.position.x) * 0.006;
+          const organicWobble = Math.sin(agent.walkCycle * 0.3) * 0.002;
+
+          const targetVx = avoidX + returnForce + organicWobble;
+          agent.vx += (targetVx - agent.vx) * 0.1;
+          
+          let currentVz = agent.vz + avoidZ;
+
+          agent.human.root.position.x += agent.vx;
+          agent.human.root.position.z += currentVz;
+
+          let currX = agent.human.root.position.x;
+          let currZ = agent.human.root.position.z;
 
           updateHumanRotation(agent);
 
@@ -434,19 +654,16 @@
           agent.human.leftArm.rotation.x = -Math.sin(agent.walkCycle) * 0.5;
           agent.human.rightArm.rotation.x = Math.sin(agent.walkCycle) * 0.5;
 
-          if (Math.abs(currX) > HALF_FLOOR - 1.8) {
-            agent.vx *= -1;
-            agent.vz += (Math.random() - 0.5) * 0.02;
-          }
-          if (Math.abs(currZ) > HALF_FLOOR - 1.8) {
-            agent.vz *= -1;
-            agent.vx += (Math.random() - 0.5) * 0.02;
+          if (currZ > HALF_LENGTH - 1) {
+            agent.human.root.position.z = -HALF_LENGTH + 1;
+            agent.targetX = (Math.random() - 0.5) * (FLOOR_WIDTH - 2);
+          } else if (currZ < -HALF_LENGTH + 1) {
+            agent.human.root.position.z = HALF_LENGTH - 1;
+            agent.targetX = (Math.random() - 0.5) * (FLOOR_WIDTH - 2);
           }
 
-          const currentSpeed = Math.hypot(agent.vx, agent.vz);
-          if (currentSpeed > 0) {
-            agent.vx = (agent.vx / currentSpeed) * agent.speed;
-            agent.vz = (agent.vz / currentSpeed) * agent.speed;
+          if (Math.abs(currX) > HALF_WIDTH - 1) {
+            agent.human.root.position.x = Math.sign(currX) * (HALF_WIDTH - 1);
           }
 
           addHeatAtWorldPos(currX, currZ);
@@ -455,18 +672,17 @@
             agent.lastStepX = currX;
             agent.lastStepZ = currZ;
             totalSteps++;
-            totalJoules += JOULES_PER_STEP;
+            totalJoules += JOULES_PER_STEP * (targetAgentCount / 8);
             stepOccurred = true;
           }
         }
       });
 
-      instantaneousWatts = stepOccurred ? (NUM_AGENTS * 6.5) + (Math.random() * 8.0) : Math.max(0, instantaneousWatts * 0.94);
+      instantaneousWatts = stepOccurred ? (targetAgentCount * 3.5) + (Math.random() * 5.0) : Math.max(0, instantaneousWatts * 0.94);
       document.getElementById('val-joules').innerText = `${totalJoules.toFixed(1)} J`;
       document.getElementById('val-watts').innerText = `${instantaneousWatts.toFixed(1)} W`;
       document.getElementById('val-steps').innerText = totalSteps.toLocaleString('pt-BR');
 
-      // Atualiza o gráfico continuamente sem quedas bruscas (caso não esteja pausado no gráfico)
       if (!isPaused && !isChartPaused && stepOccurred) {
         timeStep++;
         fxChart.data.labels.push(timeStep);
@@ -481,7 +697,26 @@
       }
     }
 
-    // Lógica da Calculadora f(x) interativa em segundos
+    const rangeAgents = document.getElementById('range-agents');
+    const labelAgentsCount = document.getElementById('label-agents-count');
+
+    rangeAgents.addEventListener('input', () => {
+      targetAgentCount = parseInt(rangeAgents.value);
+      labelAgentsCount.innerText = targetAgentCount;
+
+      pedestrians.forEach((agent, idx) => {
+        if (idx < targetAgentCount) {
+          agent.human.root.visible = true;
+        } else {
+          agent.human.root.visible = false;
+        }
+      });
+
+      fxChart.data.labels = Array.from({length: fxChart.data.labels.length}, (_, i) => i + (timeStep - fxChart.data.labels.length + 1));
+      fxChart.data.datasets[0].data = fxChart.data.labels.map(t => calcFX(t));
+      fxChart.update();
+    });
+
     const inputTime = document.getElementById('input-time');
     const resEnergy = document.getElementById('res-energy');
     const inputEnergy = document.getElementById('input-energy');
@@ -517,7 +752,6 @@
 
     inputTime.dispatchEvent(new Event('input'));
 
-    // Botões específicos de controle do gráfico
     const btnResetChart = document.getElementById('btn-reset-chart');
     btnResetChart.addEventListener('click', () => {
       timeStep = 10;
@@ -536,7 +770,12 @@
       requestAnimationFrame(animate);
       controls.update();
       updateAgents();
-      if (!isPaused) updateHeatmapTexture();
+      
+      updateHeatmapTexture();
+
+      if (!isPaused) {
+        updateAIdealHeatmap();
+      }
       renderer.render(scene, camera);
     }
     animate();
@@ -551,11 +790,16 @@
       heatMapData.fill(0);
       initFloorCanvas();
       floorTexture.needsUpdate = true;
-      totalJoules = totalSteps = instantaneousWatts = 0;
+      totalJoules = totalSteps = instantaneousWatts = simulationFrames = coveragePercentage = 0;
+      aiLocked = false;
+      lockedBestPx = lockedBestPy = -1;
+      lockedBestVal = 0;
       document.getElementById('val-joules').innerText = '0.0 J';
       document.getElementById('val-watts').innerText = '0.0 W';
       document.getElementById('val-steps').innerText = '0';
       document.getElementById('val-coverage').innerText = '0.0%';
+      document.getElementById('ideal-container').classList.remove('target-reached');
+      document.getElementById('ideal-desc-text').innerText = 'Inspirando-se no mapa para escolher a melhor área...';
       
       timeStep = 10;
       fxChart.data.labels = Array.from({length: 10}, (_, i) => i);
