@@ -1,1 +1,2370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
 
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        FECART - Monitoramento Piezoelétrico
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+
+            min-height: 100vh;
+
+            background:
+                radial-gradient(
+                    circle at top,
+                    #12352b,
+                    #08110f 45%,
+                    #040706 100%
+                );
+
+            color: white;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            padding: 25px;
+        }
+
+
+        /* ==================================================
+           DASHBOARD
+        ================================================== */
+
+        .dashboard {
+
+            width: 100%;
+
+            max-width: 1150px;
+
+            margin: auto;
+
+            background: #0d1512;
+
+            border:
+                1px solid #20352d;
+
+            border-radius: 20px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0,0,0,0.55);
+        }
+
+
+        /* ==================================================
+           CABEÇALHO
+        ================================================== */
+
+        .header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            padding:
+                25px 30px;
+
+            border-bottom:
+                1px solid #20352d;
+        }
+
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 14px;
+        }
+
+
+        .logo-icon {
+
+            font-size: 38px;
+
+            filter:
+                drop-shadow(
+                    0 0 10px #00ff88
+                );
+        }
+
+
+        .logo h1 {
+
+            font-size: 24px;
+
+            letter-spacing: 2px;
+        }
+
+
+        .logo p {
+
+            margin-top: 5px;
+
+            color: #84928d;
+
+            font-size: 13px;
+        }
+
+
+        /* ==================================================
+           STATUS
+        ================================================== */
+
+        .status {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            padding:
+                10px 16px;
+
+            border-radius: 30px;
+
+            background:
+                rgba(0,255,136,0.08);
+
+            border:
+                1px solid
+                rgba(0,255,136,0.25);
+
+            color: #00ff88;
+
+            font-size: 13px;
+
+            font-weight: bold;
+        }
+
+
+        .status-dot {
+
+            width: 9px;
+
+            height: 9px;
+
+            border-radius: 50%;
+
+            background: #00ff88;
+
+            box-shadow:
+                0 0 10px #00ff88;
+
+            animation:
+                pulse 1.5s infinite;
+        }
+
+
+        @keyframes pulse {
+
+            0% {
+
+                opacity: 1;
+
+                transform:
+                    scale(1);
+            }
+
+            50% {
+
+                opacity: 0.4;
+
+                transform:
+                    scale(0.8);
+            }
+
+            100% {
+
+                opacity: 1;
+
+                transform:
+                    scale(1);
+            }
+        }
+
+
+        /* ==================================================
+           CÂMERA
+        ================================================== */
+
+        .camera-section {
+
+            padding:
+                28px 30px 10px;
+        }
+
+
+        .section-title {
+
+            color: #8c9994;
+
+            font-size: 13px;
+
+            letter-spacing: 1.5px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .camera {
+
+            position: relative;
+
+            width: 100%;
+
+            max-width: 900px;
+
+            aspect-ratio: 16 / 9;
+
+            margin: auto;
+
+            background: black;
+
+            border-radius: 15px;
+
+            overflow: hidden;
+
+            border:
+                2px solid #164c39;
+
+            box-shadow:
+                0 0 30px
+                rgba(0,255,136,0.08);
+        }
+
+
+        #display {
+
+            width: 100%;
+
+            height: 100%;
+
+            object-fit: cover;
+
+            display: block;
+        }
+
+
+        .camera-overlay {
+
+            position: absolute;
+
+            top: 12px;
+
+            left: 12px;
+
+            padding:
+                7px 12px;
+
+            background:
+                rgba(0,0,0,0.7);
+
+            border-radius: 6px;
+
+            color: #00ff88;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            z-index: 3;
+        }
+
+
+        .divisao-setores {
+
+            position: absolute;
+
+            inset: 0;
+
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            pointer-events: none;
+
+            z-index: 2;
+        }
+
+
+        .faixa-setor {
+
+            position: relative;
+
+            border-right:
+                2px solid rgba(0, 255, 136, 0.9);
+        }
+
+
+        .faixa-setor:last-child {
+
+            border-right: none;
+        }
+
+
+        .rotulo-setor {
+
+            position: absolute;
+
+            bottom: 12px;
+
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            padding: 5px 10px;
+
+            border-radius: 6px;
+
+            background: rgba(0, 0, 0, 0.65);
+
+            color: #00ff88;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+
+            white-space: nowrap;
+        }
+
+
+        /* ==================================================
+           SETORES
+        ================================================== */
+
+        .setores {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 15px;
+
+            padding:
+                25px 30px;
+        }
+
+
+        .setor {
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #17231f,
+                    #0f1714
+                );
+
+            border:
+                1px solid #263a33;
+
+            border-radius: 15px;
+
+            padding: 22px;
+
+            text-align: center;
+
+            transition:
+                0.25s;
+        }
+
+
+        .setor:hover {
+
+            transform:
+                translateY(-4px);
+
+            border-color:
+                #00ff88;
+        }
+
+
+        .setor-nome {
+
+            color: #9ba8a3;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            letter-spacing: 1.5px;
+        }
+
+
+        .setor-numero {
+
+            margin-top: 10px;
+
+            font-size: 48px;
+
+            font-weight: bold;
+
+            color: #00ff88;
+        }
+
+
+        .setor-descricao {
+
+            color: #74817b;
+
+            font-size: 12px;
+
+            margin-top: 5px;
+        }
+
+
+        .nivel {
+
+            display: inline-block;
+
+            margin-top: 12px;
+
+            padding:
+                5px 12px;
+
+            border-radius: 20px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+        }
+
+
+        .baixo {
+
+            background:
+                rgba(0,255,136,0.12);
+
+            color: #00ff88;
+        }
+
+
+        .medio {
+
+            background:
+                rgba(255,210,60,0.12);
+
+            color: #ffd23c;
+        }
+
+
+        .alto {
+
+            background:
+                rgba(255,70,70,0.12);
+
+            color: #ff5c5c;
+        }
+
+
+        /* ==================================================
+           FLUXO
+        ================================================== */
+
+        .fluxo {
+
+            margin:
+                0 30px 25px;
+
+            padding: 25px;
+
+            background: #111a17;
+
+            border:
+                1px solid #263a33;
+
+            border-radius: 15px;
+        }
+
+
+        .fluxo h2 {
+
+            font-size: 15px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .barra-container {
+
+            display: grid;
+
+            grid-template-columns:
+                40px 1fr 50px;
+
+            align-items: center;
+
+            gap: 10px;
+
+            margin-bottom: 15px;
+        }
+
+
+        .barra-nome {
+
+            font-weight: bold;
+
+            color: #9da9a4;
+        }
+
+
+        .barra-fundo {
+
+            height: 18px;
+
+            background: #26312d;
+
+            border-radius: 20px;
+
+            overflow: hidden;
+        }
+
+
+        .barra {
+
+            height: 100%;
+
+            width: 0%;
+
+            border-radius: 20px;
+
+            transition:
+                width 0.5s ease;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #00a86b,
+                    #00ff88
+                );
+        }
+
+
+        .barra-valor {
+
+            text-align: right;
+
+            color: #00ff88;
+
+            font-weight: bold;
+        }
+
+
+        /* ==================================================
+           RECOMENDAÇÃO
+        ================================================== */
+
+        .recomendacao {
+
+            margin:
+                0 30px 25px;
+
+            padding: 28px;
+
+            text-align: center;
+
+            border-radius: 15px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(0,229,255,0.08),
+                    rgba(0,255,136,0.05)
+                );
+
+            border:
+                1px solid
+                rgba(0,229,255,0.25);
+        }
+
+
+        .recomendacao-titulo {
+
+            color: #00e5ff;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            letter-spacing: 1.5px;
+        }
+
+
+        .recomendacao-principal {
+
+            margin-top: 12px;
+
+            font-size: 24px;
+
+            font-weight: bold;
+        }
+
+
+        .recomendacao-setor {
+
+            color: #00ff88;
+        }
+
+
+        .recomendacao-info {
+
+            margin-top: 10px;
+
+            color: #899691;
+
+            font-size: 13px;
+        }
+
+
+        /* ==================================================
+           ENERGIA
+        ================================================== */
+
+        .energia {
+
+            margin:
+                0 30px 25px;
+
+            padding: 25px;
+
+            text-align: center;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #17231f,
+                    #0e1512
+                );
+
+            border:
+                1px solid #263a33;
+
+            border-radius: 15px;
+        }
+
+
+        .energia-titulo {
+
+            color: #00ff88;
+
+            font-size: 13px;
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+        }
+
+
+        .energia-valor {
+
+            margin-top: 10px;
+
+            font-size: 42px;
+
+            font-weight: bold;
+
+            color: white;
+        }
+
+
+        .energia-unidade {
+
+            color: #7d8984;
+
+            font-size: 13px;
+        }
+
+
+        .energia-info {
+
+            margin-top: 10px;
+
+            color: #697771;
+
+            font-size: 11px;
+        }
+
+
+        /* ==================================================
+           BOTÕES
+        ================================================== */
+
+        .controles {
+
+            display: flex;
+
+            justify-content: center;
+
+            gap: 15px;
+
+            padding:
+                5px 30px 30px;
+        }
+
+
+        button {
+
+            border: none;
+
+            border-radius: 9px;
+
+            padding:
+                12px 20px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition:
+                0.2s;
+        }
+
+
+        button:hover {
+
+            transform:
+                translateY(-2px);
+        }
+
+
+        .btn-reset {
+
+            background: #202c28;
+
+            color: white;
+
+            border:
+                1px solid #33463e;
+        }
+
+
+        .btn-reset:disabled {
+
+            opacity: 0.6;
+
+            cursor: wait;
+        }
+
+
+        .btn-demo {
+
+            background: #00c878;
+
+            color: #03110b;
+        }
+
+
+        .btn-demo.ativo {
+
+            background: #ff9f43;
+        }
+
+
+        /* ==================================================
+           FOOTER
+        ================================================== */
+
+        footer {
+
+            padding:
+                15px 30px;
+
+            border-top:
+                1px solid #20352d;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            color: #5f6c67;
+
+            font-size: 11px;
+        }
+
+
+        /* ==================================================
+           RESPONSIVO
+        ================================================== */
+
+        @media(max-width: 700px) {
+
+            body {
+
+                padding: 10px;
+            }
+
+
+            .header {
+
+                flex-direction:
+                    column;
+
+                align-items:
+                    flex-start;
+
+                gap: 15px;
+            }
+
+
+            .setores {
+
+                grid-template-columns:
+                    1fr;
+            }
+
+
+            .controles {
+
+                flex-direction:
+                    column;
+            }
+
+
+            button {
+
+                width: 100%;
+            }
+
+
+            footer {
+
+                flex-direction:
+                    column;
+
+                gap: 5px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<main class="dashboard">
+
+
+    <!-- ==================================================
+         CABEÇALHO
+    ================================================== -->
+
+    <header class="header">
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                ⚡
+            </div>
+
+            <div>
+
+                <h1>
+                    FECART
+                </h1>
+
+                <p>
+                    Monitoramento Piezoelétrico
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="status">
+
+            <span class="status-dot"></span>
+
+            <span id="statusTexto">
+                SISTEMA ONLINE
+            </span>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- ==================================================
+         CÂMERA
+    ================================================== -->
+
+    <section class="camera-section">
+
+        <div class="section-title">
+            📷 CÂMERA AO VIVO
+        </div>
+
+
+        <div class="camera">
+
+            <video
+                id="display"
+                autoplay
+                playsinline
+                muted
+            ></video>
+
+
+            <div class="divisao-setores" aria-hidden="true">
+
+                <div class="faixa-setor">
+                    <span class="rotulo-setor">SETOR A</span>
+                </div>
+
+                <div class="faixa-setor">
+                    <span class="rotulo-setor">SETOR B</span>
+                </div>
+
+                <div class="faixa-setor">
+                    <span class="rotulo-setor">SETOR C</span>
+                </div>
+
+            </div>
+
+
+            <div
+                class="camera-overlay"
+                id="cameraStatus"
+            >
+                ● INICIANDO CÂMERA
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==================================================
+         CANVAS INVISÍVEL
+    ================================================== -->
+
+    <canvas
+        id="canvas"
+        width="640"
+        height="480"
+        style="display:none;"
+    ></canvas>
+
+
+
+    <!-- ==================================================
+         SETORES
+    ================================================== -->
+
+    <section class="setores">
+
+
+        <!-- SETOR A -->
+
+        <div class="setor">
+
+            <div class="setor-nome">
+                SETOR A
+            </div>
+
+            <div
+                class="setor-numero"
+                id="setorA"
+            >
+                0
+            </div>
+
+            <div class="setor-descricao">
+                movimentos
+            </div>
+
+            <div
+                class="nivel baixo"
+                id="nivelA"
+            >
+                🟢 BAIXO
+            </div>
+
+        </div>
+
+
+
+        <!-- SETOR B -->
+
+        <div class="setor">
+
+            <div class="setor-nome">
+                SETOR B
+            </div>
+
+            <div
+                class="setor-numero"
+                id="setorB"
+            >
+                0
+            </div>
+
+            <div class="setor-descricao">
+                movimentos
+            </div>
+
+            <div
+                class="nivel baixo"
+                id="nivelB"
+            >
+                🟢 BAIXO
+            </div>
+
+        </div>
+
+
+
+        <!-- SETOR C -->
+
+        <div class="setor">
+
+            <div class="setor-nome">
+                SETOR C
+            </div>
+
+            <div class="setor-numero"
+                 id="setorC">
+                0
+            </div>
+
+            <div class="setor-descricao">
+                movimentos
+            </div>
+
+            <div
+                class="nivel baixo"
+                id="nivelC"
+            >
+                🟢 BAIXO
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==================================================
+         FLUXO
+    ================================================== -->
+
+    <section class="fluxo">
+
+        <h2>
+            📊 FLUXO DE MOVIMENTAÇÃO
+        </h2>
+
+
+        <!-- A -->
+
+        <div class="barra-container">
+
+            <div class="barra-nome">
+                A
+            </div>
+
+            <div class="barra-fundo">
+
+                <div
+                    class="barra"
+                    id="barraA"
+                ></div>
+
+            </div>
+
+            <div
+                class="barra-valor"
+                id="valorA"
+            >
+                0
+            </div>
+
+        </div>
+
+
+
+        <!-- B -->
+
+        <div class="barra-container">
+
+            <div class="barra-nome">
+                B
+            </div>
+
+            <div class="barra-fundo">
+
+                <div
+                    class="barra"
+                    id="barraB"
+                ></div>
+
+            </div>
+
+            <div
+                class="barra-valor"
+                id="valorB"
+            >
+                0
+            </div>
+
+        </div>
+
+
+
+        <!-- C -->
+
+        <div class="barra-container">
+
+            <div class="barra-nome">
+                C
+            </div>
+
+            <div class="barra-fundo">
+
+                <div
+                    class="barra"
+                    id="barraC"
+                ></div>
+
+            </div>
+
+            <div
+                class="barra-valor"
+                id="valorC"
+            >
+                0
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==================================================
+         RECOMENDAÇÃO
+    ================================================== -->
+
+    <section class="recomendacao">
+
+        <div class="recomendacao-titulo">
+            💡 RECOMENDAÇÃO DO SISTEMA
+        </div>
+
+
+        <div
+            class="recomendacao-principal"
+            id="recomendacao"
+        >
+            AGUARDANDO FLUXO...
+        </div>
+
+
+        <div
+            class="recomendacao-info"
+            id="recomendacaoInfo"
+        >
+            Nenhum movimento detectado.
+        </div>
+
+    </section>
+
+
+
+    <!-- ==================================================
+         ENERGIA
+    ================================================== -->
+
+    <section class="energia">
+
+        <div class="energia-titulo">
+            ⚡ ENERGIA ESTIMADA
+        </div>
+
+
+        <div
+            class="energia-valor"
+            id="energia"
+        >
+            0,00
+        </div>
+
+
+        <div class="energia-unidade">
+            Joules (J)
+        </div>
+
+
+        <div class="energia-info">
+            Estimativa baseada nos movimentos detectados.
+        </div>
+
+    </section>
+
+
+
+    <!-- ==================================================
+         CONTROLES
+    ================================================== -->
+
+    <div class="controles">
+
+        <button
+            class="btn-reset"
+            id="btnReset"
+            onclick="zerarContagem()"
+        >
+            🔄 ZERAR CONTAGEM
+        </button>
+
+
+        <button
+            class="btn-demo"
+            id="btnDemo"
+            onclick="alternarDemonstracao()"
+        >
+            🎮 MODO DEMONSTRAÇÃO
+        </button>
+
+    </div>
+
+
+
+    <!-- ==================================================
+         RODAPÉ
+    ================================================== -->
+
+    <footer>
+
+        <span>
+            FECART • Monitoramento Piezoelétrico
+        </span>
+
+        <span>
+            OpenCV + MediaPipe
+        </span>
+
+    </footer>
+
+
+</main>
+
+
+
+<script>
+
+
+// ============================================================
+// ELEMENTOS
+// ============================================================
+
+const video =
+    document.getElementById("display");
+
+
+const canvas =
+    document.getElementById("canvas");
+
+
+const ctx =
+    canvas.getContext("2d");
+
+
+// Quando a pagina e aberta pelo Live Server (normalmente na porta 5500),
+// as requisicoes precisam ir para o Flask, que roda na porta 5000.
+const API_BASE_URL =
+    window.location.port === "5000"
+        ? ""
+        : "http://" + (window.location.hostname || "127.0.0.1") + ":5000";
+
+
+
+// ============================================================
+// CONTROLE
+// ============================================================
+
+let processando = false;
+
+let modoDemonstracao = false;
+
+let intervaloDemo = null;
+
+let intervaloAnalise = null;
+
+
+
+// ============================================================
+// ENERGIA
+// ============================================================
+
+const ENERGIA_POR_MOVIMENTO = 0.05;
+
+
+
+// ============================================================
+// INICIAR CÂMERA
+// ============================================================
+
+async function iniciarCamera() {
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices
+                .getUserMedia({
+
+                    video: {
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        },
+
+                        frameRate: {
+
+                            ideal: 24,
+
+                            max: 30
+                        }
+
+                    },
+
+                    audio: false
+                });
+
+
+        video.srcObject =
+            stream;
+
+
+        await video.play();
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● CÂMERA ATIVA";
+
+
+        document.getElementById(
+            "statusTexto"
+        ).innerText =
+            "SISTEMA ONLINE";
+
+
+        iniciarAnalise();
+
+    }
+
+
+    catch (erro) {
+
+        console.error(
+            "Erro ao acessar câmera:",
+            erro
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● CÂMERA OFFLINE";
+
+
+        document.getElementById(
+            "statusTexto"
+        ).innerText =
+            "CÂMERA OFFLINE";
+
+    }
+
+}
+
+
+
+// ============================================================
+// ANÁLISE DA CÂMERA
+// ============================================================
+//
+// Antes:
+//
+// 5 análises por segundo.
+//
+// Agora:
+//
+// 2 análises por segundo.
+//
+// Isso diminui o trabalho do MediaPipe.
+//
+// A câmera continua fluida.
+//
+
+function iniciarAnalise() {
+
+    if (intervaloAnalise) {
+
+        clearInterval(
+            intervaloAnalise
+        );
+    }
+
+
+    intervaloAnalise =
+        setInterval(
+
+            function() {
+
+                if (
+                    !modoDemonstracao
+                ) {
+
+                    enviarFrameParaPython();
+
+                }
+
+            },
+
+            500
+        );
+}
+
+
+
+// ============================================================
+// ENVIAR FRAME PARA PYTHON
+// ============================================================
+
+async function enviarFrameParaPython() {
+
+
+    if (processando) {
+
+        return;
+    }
+
+
+    if (
+        video.readyState < 2
+    ) {
+
+        return;
+    }
+
+
+    processando = true;
+
+
+    try {
+
+
+        // ====================================================
+        // CAPTURA
+        // ====================================================
+
+        canvas.width =
+            Math.min(video.videoWidth || 1280, 1280);
+
+        canvas.height =
+            Math.min(video.videoHeight || 720, 720);
+
+
+        ctx.drawImage(
+
+            video,
+
+            0,
+            0,
+
+            canvas.width,
+            canvas.height
+        );
+
+
+
+        // ====================================================
+        // JPEG
+        // ====================================================
+
+        const imagemBase64 =
+            canvas.toDataURL(
+                "image/jpeg",
+                0.82
+            );
+
+
+
+        // ====================================================
+        // ENVIA PARA FLASK
+        // ====================================================
+
+        const resposta =
+            await fetch(
+                API_BASE_URL + "/processar_frame",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            imagem:
+                                imagemBase64
+                        })
+                }
+            );
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "HTTP " +
+                resposta.status
+            );
+        }
+
+
+
+        // ====================================================
+        // RECEBE RESPOSTA
+        // ====================================================
+
+        const dados =
+            await resposta.json();
+
+
+        atualizarDashboard(
+            dados
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● ANÁLISE ATIVA";
+
+    }
+
+
+    catch (erro) {
+
+        console.error(
+            "Erro na análise:",
+            erro
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● ERRO NO SERVIDOR";
+    }
+
+
+    finally {
+
+        processando =
+            false;
+    }
+
+}
+
+
+
+// ============================================================
+// ATUALIZAR DASHBOARD
+// ============================================================
+
+function atualizarDashboard(
+    dados
+) {
+
+
+    if (!dados.setores) {
+
+        return;
+    }
+
+
+
+    // ========================================================
+    // VALORES
+    // ========================================================
+
+    const A =
+        Number(
+            dados.setores["Setor A"] || 0
+        );
+
+
+    const B =
+        Number(
+            dados.setores["Setor B"] || 0
+        );
+
+
+    const C =
+        Number(
+            dados.setores["Setor C"] || 0
+        );
+
+
+
+    // ========================================================
+    // NÚMEROS
+    // ========================================================
+
+    document.getElementById(
+        "setorA"
+    ).innerText = A;
+
+
+    document.getElementById(
+        "setorB"
+    ).innerText = B;
+
+
+    document.getElementById(
+        "setorC"
+    ).innerText = C;
+
+
+
+    // ========================================================
+    // GRÁFICO
+    // ========================================================
+
+    const maior =
+        Math.max(
+            A,
+            B,
+            C,
+            1
+        );
+
+
+    document.getElementById(
+        "barraA"
+    ).style.width =
+        (A / maior * 100) +
+        "%";
+
+
+    document.getElementById(
+        "barraB"
+    ).style.width =
+        (B / maior * 100) +
+        "%";
+
+
+    document.getElementById(
+        "barraC"
+    ).style.width =
+        (C / maior * 100) +
+        "%";
+
+
+    document.getElementById(
+        "valorA"
+    ).innerText = A;
+
+
+    document.getElementById(
+        "valorB"
+    ).innerText = B;
+
+
+    document.getElementById(
+        "valorC"
+    ).innerText = C;
+
+
+
+    // ========================================================
+    // NÍVEIS
+    // ========================================================
+    //
+    // AGORA É POR VALOR ABSOLUTO.
+    //
+    // 0 - 5  = BAIXO
+    // 6 - 15 = MÉDIO
+    // 16+    = ALTO
+    //
+    // Assim, por exemplo:
+    //
+    // 2 movimentos = BAIXO
+    //
+    // mesmo que seja o maior setor.
+    //
+
+    atualizarNivel(
+        "nivelA",
+        A
+    );
+
+
+    atualizarNivel(
+        "nivelB",
+        B
+    );
+
+
+    atualizarNivel(
+        "nivelC",
+        C
+    );
+
+
+
+    // ========================================================
+    // MAIOR SETOR
+    // ========================================================
+
+    const valoresSetores = [
+        { nome: "Setor A", valor: A },
+        { nome: "Setor B", valor: B },
+        { nome: "Setor C", valor: C }
+    ];
+
+
+    const valorMaior =
+        Math.max(A, B, C);
+
+
+    const setoresMaiores = valoresSetores
+        .filter(setor => setor.valor === valorMaior)
+        .map(setor => setor.nome);
+
+
+    const setorMaior =
+        setoresMaiores.join(" E ");
+
+
+
+    // ========================================================
+    // RECOMENDAÇÃO
+    // ========================================================
+
+    if (
+
+        A === 0 &&
+        B === 0 &&
+        C === 0
+
+    ) {
+
+
+        document.getElementById(
+            "recomendacao"
+        ).innerText =
+            "AGUARDANDO FLUXO...";
+
+
+        document.getElementById(
+            "recomendacaoInfo"
+        ).innerText =
+            "Nenhum movimento detectado.";
+
+    }
+
+
+    else {
+
+
+        document.getElementById(
+            "recomendacao"
+        ).innerHTML =
+
+            "INSTALAR PISO PIEZOELÉTRICO NO " +
+
+            '<span class="recomendacao-setor">' +
+
+            setorMaior.toUpperCase() +
+
+            "</span>";
+
+
+        document.getElementById(
+            "recomendacaoInfo"
+        ).innerText =
+
+            "Maior fluxo detectado: " +
+
+            valorMaior +
+
+            " movimentos.";
+
+    }
+
+
+
+    // ========================================================
+    // ENERGIA
+    // ========================================================
+
+    const total =
+        A + B + C;
+
+
+    const energia =
+        total *
+        ENERGIA_POR_MOVIMENTO;
+
+
+    document.getElementById(
+        "energia"
+    ).innerText =
+
+        energia
+            .toFixed(2)
+            .replace(
+                ".",
+                ","
+            );
+
+}
+
+
+
+// ============================================================
+// NÍVEL DO SETOR
+// ============================================================
+
+function atualizarNivel(
+    id,
+    valor
+) {
+
+
+    const elemento =
+        document.getElementById(
+            id
+        );
+
+
+    elemento.className =
+        "nivel";
+
+
+
+    // ========================================================
+    // BAIXO
+    // ========================================================
+
+    if (
+        valor <= 5
+    ) {
+
+        elemento.classList.add(
+            "baixo"
+        );
+
+
+        elemento.innerText =
+            "🟢 BAIXO";
+
+
+        return;
+    }
+
+
+
+    // ========================================================
+    // MÉDIO
+    // ========================================================
+
+    if (
+        valor <= 15
+    ) {
+
+        elemento.classList.add(
+            "medio"
+        );
+
+
+        elemento.innerText =
+            "🟡 MÉDIO";
+
+
+        return;
+    }
+
+
+
+    // ========================================================
+    // ALTO
+    // ========================================================
+
+    elemento.classList.add(
+        "alto"
+    );
+
+
+    elemento.innerText =
+        "🔴 ALTO";
+
+}
+
+
+
+// ============================================================
+// ZERAR CONTAGEM
+// ============================================================
+
+async function zerarContagem() {
+
+
+    const botao =
+        document.getElementById(
+            "btnReset"
+        );
+
+
+    try {
+
+
+        botao.disabled =
+            true;
+
+
+        botao.innerText =
+            "⏳ ZERANDO...";
+
+
+
+        // ====================================================
+        // PARA A ANÁLISE POR UM MOMENTO
+        // ====================================================
+
+        const analiseAnterior =
+            intervaloAnalise;
+
+
+        if (
+            analiseAnterior
+        ) {
+
+            clearInterval(
+                analiseAnterior
+            );
+
+            intervaloAnalise =
+                null;
+        }
+
+
+
+        // ====================================================
+        // ESPERA QUALQUER REQUISIÇÃO TERMINAR
+        // ====================================================
+
+        while (
+            processando
+        ) {
+
+            await new Promise(
+                function(resolve) {
+
+                    setTimeout(
+                        resolve,
+                        50
+                    );
+
+                }
+            );
+
+        }
+
+
+
+        // ====================================================
+        // DESLIGA DEMONSTRAÇÃO
+        // ====================================================
+
+        modoDemonstracao =
+            false;
+
+
+        if (
+            intervaloDemo
+        ) {
+
+            clearInterval(
+                intervaloDemo
+            );
+
+            intervaloDemo =
+                null;
+        }
+
+
+
+        // ====================================================
+        // ENVIA RESET PARA PYTHON
+        // ====================================================
+
+        const resposta =
+            await fetch(
+                API_BASE_URL + "/zerar_contagem",
+                {
+
+                    method: "POST",
+
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "HTTP " +
+                resposta.status
+            );
+        }
+
+
+        const dados =
+            await resposta.json();
+
+
+        if (
+            !dados.sucesso
+        ) {
+
+            throw new Error(
+                "O servidor não confirmou o reset."
+            );
+        }
+
+
+
+        // ====================================================
+        // MOSTRA ZERO NA TELA
+        // ====================================================
+
+        atualizarDashboard({
+
+            setores: {
+
+                "Setor A": 0,
+
+                "Setor B": 0,
+
+                "Setor C": 0
+            }
+
+        });
+
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● CÂMERA ATIVA";
+
+
+
+        // ====================================================
+        // REINICIA ANÁLISE
+        // ====================================================
+
+        setTimeout(
+            function() {
+
+                if (
+                    !modoDemonstracao
+                ) {
+
+                    iniciarAnalise();
+
+                }
+
+            },
+            300
+        );
+
+
+        console.log(
+            "Contagem zerada com sucesso!"
+        );
+
+    }
+
+
+    catch (erro) {
+
+
+        console.error(
+            "Erro ao zerar:",
+            erro
+        );
+
+
+        alert(
+            "Erro ao zerar a contagem.\n\n" +
+            "Verifique se o appmedia.py está rodando."
+        );
+
+
+
+        // Reinicia análise mesmo se houver erro
+
+        if (
+            !intervaloAnalise &&
+            !modoDemonstracao
+        ) {
+
+            iniciarAnalise();
+        }
+
+    }
+
+
+    finally {
+
+        botao.disabled =
+            false;
+
+
+        botao.innerText =
+            "🔄 ZERAR CONTAGEM";
+    }
+
+}
+
+
+
+// ============================================================
+// MODO DEMONSTRAÇÃO
+// ============================================================
+
+function alternarDemonstracao() {
+
+
+    modoDemonstracao =
+        !modoDemonstracao;
+
+
+    const botao =
+        document.getElementById(
+            "btnDemo"
+        );
+
+
+
+    if (
+        modoDemonstracao
+    ) {
+
+
+        // Para análise da câmera
+
+        if (
+            intervaloAnalise
+        ) {
+
+            clearInterval(
+                intervaloAnalise
+            );
+
+            intervaloAnalise =
+                null;
+        }
+
+
+        botao.innerText =
+            "⏹ SAIR DA DEMONSTRAÇÃO";
+
+
+        botao.classList.add(
+            "ativo"
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● MODO DEMONSTRAÇÃO";
+
+
+        iniciarDemo();
+
+    }
+
+
+    else {
+
+
+        botao.innerText =
+            "🎮 MODO DEMONSTRAÇÃO";
+
+
+        botao.classList.remove(
+            "ativo"
+        );
+
+
+        document.getElementById(
+            "cameraStatus"
+        ).innerText =
+            "● CÂMERA ATIVA";
+
+
+        if (
+            intervaloDemo
+        ) {
+
+            clearInterval(
+                intervaloDemo
+            );
+
+            intervaloDemo =
+                null;
+        }
+
+
+        iniciarAnalise();
+
+    }
+
+}
+
+
+
+// ============================================================
+// DEMONSTRAÇÃO
+// ============================================================
+
+function iniciarDemo() {
+
+
+    let A = 2;
+
+    let B = 4;
+
+    let C = 1;
+
+
+
+    // Mostra imediatamente
+
+    atualizarDashboard({
+
+        setores: {
+
+            "Setor A": A,
+
+            "Setor B": B,
+
+            "Setor C": C
+
+        }
+
+    });
+
+
+
+    intervaloDemo =
+        setInterval(
+
+            function() {
+
+
+                A +=
+                    Math.floor(
+                        Math.random() * 3
+                    );
+
+
+                B +=
+                    Math.floor(
+                        Math.random() * 3
+                    );
+
+
+                C +=
+                    Math.floor(
+                        Math.random() * 2
+                    );
+
+
+
+                atualizarDashboard({
+
+                    setores: {
+
+                        "Setor A": A,
+
+                        "Setor B": B,
+
+                        "Setor C": C
+
+                    }
+
+                });
+
+            },
+
+            1500
+        );
+
+}
+
+
+
+// ============================================================
+// COMEÇA TUDO
+// ============================================================
+
+iniciarCamera();
+
+
+</script>
+
+
+</body>
+
+</html>
